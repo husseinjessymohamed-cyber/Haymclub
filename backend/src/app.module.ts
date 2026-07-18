@@ -1,0 +1,46 @@
+import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
+import { ConfigModule } from '@nestjs/config';
+
+import { AcademiesModule } from './academies/academies.module';
+import { AppController } from './app.controller';
+import { AuthModule } from './auth/auth.module';
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { RolesGuard } from './auth/guards/roles.guard';
+import { BranchesModule } from './branches/branches.module';
+import { DatabaseModule } from './database/database.module';
+import { MembershipsModule } from './memberships/memberships.module';
+import { SportsModule } from './sports/sports.module';
+import { TrainingProgramsModule } from './training-programs/training-programs.module';
+import { TrainingGroupsModule } from './training-groups/training-groups.module';
+import { UsersModule } from './users/users.module';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      cache: true,
+    }),
+    DatabaseModule,
+    AcademiesModule,
+    BranchesModule,
+    MembershipsModule,
+    UsersModule,
+    AuthModule,
+    SportsModule,
+    TrainingProgramsModule,
+    TrainingGroupsModule,
+  ],
+  controllers: [AppController],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
+    },
+  ],
+})
+export class AppModule {}

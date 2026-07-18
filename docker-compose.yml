@@ -1,0 +1,43 @@
+name: haymclub-academy
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: haymclub-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: haymclub_academy
+      POSTGRES_USER: haymclub_admin
+      POSTGRES_PASSWORD: haymclub_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - haymclub_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U haymclub_admin -d haymclub_academy
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: haymclub-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - haymclub_redis_data:/data
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  haymclub_postgres_data:
+  haymclub_redis_data:
