@@ -2,30 +2,23 @@ import axios from 'axios';
 
 import type { DashboardOverview } from '../types/dashboard';
 
-const getApiBaseUrl = (): string => {
-  const hostname = window.location.hostname;
-
-  if (hostname.endsWith('.app.github.dev')) {
-    const apiHostname = hostname.replace(
-      /-\d+\.app\.github\.dev$/,
-      '-3000.app.github.dev',
-    );
-
-    return `${window.location.protocol}//${apiHostname}/api`;
-  }
-
-  return 'http://localhost:3000/api';
-};
+export const AUTH_TOKEN_KEY = 'haymclub_token';
 
 export const api = axios.create({
-  baseURL: getApiBaseUrl(),
+  // الطلب يذهب إلى Vite على 5173،
+  // ثم Vite يمرره داخليًا إلى Backend على 3000.
+  baseURL: '/api',
+
   headers: {
     'Content-Type': 'application/json',
+    Accept: 'application/json',
   },
+
+  timeout: 15000,
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('haymclub_token');
+  const token = localStorage.getItem(AUTH_TOKEN_KEY);
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -34,12 +27,36 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+api.interceptors.response.use(
+  (response) => response,
+
+  (error: unknown) => {
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      const requestUrl = error.config?.url ?? '';
+
+      const isLoginRequest =
+        requestUrl.includes('/auth/login');
+
+      // التوكن منتهي أو أصبح غير صالح بعد تغيير JWT secret.
+      if (status === 401 && !isLoginRequest) {
+        localStorage.removeItem(AUTH_TOKEN_KEY);
+
+        // إعادة تحميل التطبيق تجعل App يفتح صفحة تسجيل الدخول.
+        window.location.replace(window.location.origin);
+      }
+    }
+
+    return Promise.reject(error);
+  },
+);
+
 export const login = async (
   email: string,
   password: string,
 ): Promise<string> => {
   const response = await api.post('/auth/login', {
-    email,
+    email: email.trim().toLowerCase(),
     password,
   });
 
@@ -49,8 +66,10 @@ export const login = async (
     payload?.accessToken ??
     payload?.access_token;
 
-  if (!token) {
-    throw new Error('لم يتم استلام رمز تسجيل الدخول');
+  if (!token || typeof token !== 'string') {
+    throw new Error(
+      'لم يتم استلام رمز تسجيل الدخول من الخادم',
+    );
   }
 
   return token;

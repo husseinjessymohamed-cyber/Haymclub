@@ -62,8 +62,7 @@ function LoginPage({
     'admin@haymclub.com',
   );
 
-  const [password, setPassword] =
-    useState('Admin@12345');
+  const [password, setPassword] = useState('');
 
   const loginMutation = useMutation({
     mutationFn: () =>
