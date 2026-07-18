@@ -12,14 +12,11 @@ import {
 import { createRoot } from 'react-dom/client';
 
 import App from './App';
+import { GroupsPage } from './features/groups/GroupsPage';
 import { TraineesPage } from './features/trainees/TraineesPage';
 
 import './index.css';
 
-/*
- * يجب إنشاء نسخة واحدة فقط من QueryClient خارج المكونات،
- * حتى لا يُعاد إنشاؤها عند كل Render.
- */
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -35,11 +32,6 @@ const queryClient = new QueryClient({
 });
 
 function getCurrentRoute(): string {
-  /*
-   * يدعم الصيغتين:
-   * #trainees
-   * #/trainees
-   */
   return window.location.hash
     .replace(/^#\/?/, '')
     .trim()
@@ -54,26 +46,30 @@ function RootApplication() {
   const [authenticated, setAuthenticated] =
     useState(() =>
       Boolean(
-        localStorage.getItem('haymclub_token'),
+        localStorage.getItem(
+          'haymclub_token',
+        ),
       ),
     );
 
   useEffect(() => {
-    const handleHashChange = (): void => {
+    const refreshRoute = (): void => {
       setRoute(getCurrentRoute());
     };
 
     const refreshAuthentication = (): void => {
       setAuthenticated(
         Boolean(
-          localStorage.getItem('haymclub_token'),
+          localStorage.getItem(
+            'haymclub_token',
+          ),
         ),
       );
     };
 
     window.addEventListener(
       'hashchange',
-      handleHashChange,
+      refreshRoute,
     );
 
     window.addEventListener(
@@ -81,16 +77,15 @@ function RootApplication() {
       refreshAuthentication,
     );
 
-    const authenticationTimer =
-      window.setInterval(
-        refreshAuthentication,
-        700,
-      );
+    const timer = window.setInterval(
+      refreshAuthentication,
+      700,
+    );
 
     return () => {
       window.removeEventListener(
         'hashchange',
-        handleHashChange,
+        refreshRoute,
       );
 
       window.removeEventListener(
@@ -98,9 +93,7 @@ function RootApplication() {
         refreshAuthentication,
       );
 
-      window.clearInterval(
-        authenticationTimer,
-      );
+      window.clearInterval(timer);
     };
   }, []);
 
@@ -114,20 +107,44 @@ function RootApplication() {
     );
   }
 
+  if (route === 'groups') {
+    return (
+      <GroupsPage
+        onBack={() => {
+          window.location.hash = '';
+        }}
+      />
+    );
+  }
+
   return (
     <>
       <App />
 
       {authenticated && (
-        <button
-          type="button"
-          className="haymclub-trainees-shortcut"
-          onClick={() => {
-            window.location.hash = 'trainees';
-          }}
-        >
-          👥 إدارة المتدربين
-        </button>
+        <div className="haymclub-page-shortcuts">
+          <button
+            type="button"
+            className="haymclub-trainees-shortcut"
+            onClick={() => {
+              window.location.hash =
+                'trainees';
+            }}
+          >
+            👥 إدارة المتدربين
+          </button>
+
+          <button
+            type="button"
+            className="haymclub-groups-shortcut"
+            onClick={() => {
+              window.location.hash =
+                'groups';
+            }}
+          >
+            ⚽ إدارة المجموعات
+          </button>
+        </div>
       )}
     </>
   );
