@@ -17,6 +17,7 @@ import { TrainingProgramsService } from '../training-programs/training-programs.
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { CreateSubscriptionPlanDto } from './dto/create-subscription-plan.dto';
 import { CreateTraineeSubscriptionDto } from './dto/create-trainee-subscription.dto';
+import { RenewSubscriptionDto } from './dto/renew-subscription.dto';
 import { UpdateSubscriptionPlanDto } from './dto/update-subscription-plan.dto';
 import { Payment } from './entities/payment.entity';
 import { SubscriptionPlan } from './entities/subscription-plan.entity';
@@ -38,6 +39,12 @@ export interface SubscriptionFilters {
   traineeId?: string;
   planId?: string;
   status?: TraineeSubscriptionStatus;
+}
+
+export interface BillingAlertFilters {
+  academyId: string;
+  branchId?: string;
+  days: number;
 }
 
 @Injectable()
@@ -244,7 +251,10 @@ export class BillingService {
       subscriptionNumber: this.generateNumber('SUB'),
       startDate,
       endDate,
-      status: TraineeSubscriptionStatus.ACTIVE,
+      status:
+        startDate > this.today()
+          ? TraineeSubscriptionStatus.PENDING
+          : TraineeSubscriptionStatus.ACTIVE,
       subtotalAmount,
       discountAmount,
       totalAmount,
@@ -263,9 +273,64 @@ export class BillingService {
     }
   }
 
-  findSubscriptions(
+  async renewSubscription(
+    subscriptionId: string,
+    dto: RenewSubscriptionDto,
+  ): Promise<TraineeSubscription> {
+    const currentSubscription = await this.findSubscription(subscriptionId);
+
+    if (currentSubscription.status === TraineeSubscriptionStatus.CANCELLED) {
+      throw new BadRequestException(
+        'A cancelled subscription cannot be renewed',
+      );
+    }
+
+    const existingRenewal = await this.subscriptionsRepository.findOne({
+      where: {
+        renewedFromSubscriptionId: currentSubscription.id,
+      },
+    });
+
+    if (existingRenewal) {
+      throw new ConflictException('This subscription has already been renewed');
+    }
+
+    const today = this.today();
+
+    const nextStartDate =
+      dto.startDate ??
+      (currentSubscription.endDate >= today
+        ? this.addDays(currentSubscription.endDate, 1)
+        : today);
+
+    const renewedSubscription = await this.createSubscription({
+      academyId: currentSubscription.academyId,
+      branchId: currentSubscription.branchId,
+      traineeId: currentSubscription.traineeId,
+      planId: dto.planId ?? currentSubscription.planId,
+      startDate: nextStartDate,
+      discountAmount: dto.discountAmount ?? 0,
+      notes:
+        dto.notes?.trim() ||
+        `Renewal of ${currentSubscription.subscriptionNumber}`,
+    });
+
+    renewedSubscription.renewedFromSubscriptionId = currentSubscription.id;
+
+    try {
+      await this.subscriptionsRepository.save(renewedSubscription);
+
+      return await this.findSubscription(renewedSubscription.id);
+    } catch (error) {
+      this.handleDatabaseError(error);
+    }
+  }
+
+  async findSubscriptions(
     filters: SubscriptionFilters,
   ): Promise<TraineeSubscription[]> {
+    await this.syncSubscriptionStatuses(filters.academyId, filters.branchId);
+
     const where: FindOptionsWhere<TraineeSubscription> = {};
 
     if (filters.academyId) {
@@ -298,6 +363,7 @@ export class BillingService {
           program: true,
         },
         payments: true,
+        renewedFromSubscription: true,
       },
       order: {
         createdAt: 'DESC',
@@ -476,6 +542,128 @@ export class BillingService {
     };
   }
 
+  async syncSubscriptionStatuses(academyId?: string, branchId?: string) {
+    const today = this.today();
+
+    const expireQuery = this.subscriptionsRepository
+      .createQueryBuilder()
+      .update(TraineeSubscription)
+      .set({
+        status: TraineeSubscriptionStatus.EXPIRED,
+      })
+      .where('"end_date" < :today', {
+        today,
+      })
+      .andWhere('"status" IN (:...statuses)', {
+        statuses: [
+          TraineeSubscriptionStatus.PENDING,
+          TraineeSubscriptionStatus.ACTIVE,
+        ],
+      });
+
+    if (academyId) {
+      expireQuery.andWhere('"academy_id" = :academyId', {
+        academyId,
+      });
+    }
+
+    if (branchId) {
+      expireQuery.andWhere('"branch_id" = :branchId', {
+        branchId,
+      });
+    }
+
+    const expiredResult = await expireQuery.execute();
+
+    const activateQuery = this.subscriptionsRepository
+      .createQueryBuilder()
+      .update(TraineeSubscription)
+      .set({
+        status: TraineeSubscriptionStatus.ACTIVE,
+      })
+      .where('"start_date" <= :today', {
+        today,
+      })
+      .andWhere('"end_date" >= :today', {
+        today,
+      })
+      .andWhere('"status" = :pendingStatus', {
+        pendingStatus: TraineeSubscriptionStatus.PENDING,
+      });
+
+    if (academyId) {
+      activateQuery.andWhere('"academy_id" = :academyId', {
+        academyId,
+      });
+    }
+
+    if (branchId) {
+      activateQuery.andWhere('"branch_id" = :branchId', {
+        branchId,
+      });
+    }
+
+    const activatedResult = await activateQuery.execute();
+
+    return {
+      date: today,
+      expired: expiredResult.affected ?? 0,
+      activated: activatedResult.affected ?? 0,
+    };
+  }
+
+  async getAlerts(filters: BillingAlertFilters) {
+    const subscriptions = await this.findSubscriptions({
+      academyId: filters.academyId,
+      branchId: filters.branchId,
+    });
+
+    const today = this.today();
+
+    const untilDate = this.addDays(today, filters.days);
+
+    const expiring = subscriptions.filter(
+      (subscription) =>
+        subscription.status === TraineeSubscriptionStatus.ACTIVE &&
+        subscription.endDate >= today &&
+        subscription.endDate <= untilDate,
+    );
+
+    const expired = subscriptions.filter(
+      (subscription) =>
+        subscription.status === TraineeSubscriptionStatus.EXPIRED,
+    );
+
+    const outstanding = subscriptions.filter(
+      (subscription) =>
+        subscription.balanceAmount > 0 &&
+        subscription.status !== TraineeSubscriptionStatus.CANCELLED,
+    );
+
+    const overdueBalances = outstanding.filter(
+      (subscription) => subscription.endDate < today,
+    );
+
+    return {
+      generatedAt: new Date().toISOString(),
+      window: {
+        from: today,
+        to: untilDate,
+        days: filters.days,
+      },
+      counts: {
+        expiring: expiring.length,
+        expired: expired.length,
+        outstanding: outstanding.length,
+        overdueBalances: overdueBalances.length,
+      },
+      expiring,
+      expired,
+      outstanding,
+      overdueBalances,
+    };
+  }
+
   private async validatePlanRelations(
     academyId: string,
     sportId: string | null,
@@ -516,6 +704,38 @@ export class BillingService {
     if (sportAcademyId && sportAcademyId !== academyId) {
       throw new BadRequestException('Invalid subscription plan relations');
     }
+  }
+
+  private async normalizeSubscriptionStatus(
+    subscription: TraineeSubscription,
+  ): Promise<void> {
+    const today = this.today();
+
+    let nextStatus = subscription.status;
+
+    if (
+      (subscription.status === TraineeSubscriptionStatus.PENDING ||
+        subscription.status === TraineeSubscriptionStatus.ACTIVE) &&
+      subscription.endDate < today
+    ) {
+      nextStatus = TraineeSubscriptionStatus.EXPIRED;
+    } else if (
+      subscription.status === TraineeSubscriptionStatus.PENDING &&
+      subscription.startDate <= today &&
+      subscription.endDate >= today
+    ) {
+      nextStatus = TraineeSubscriptionStatus.ACTIVE;
+    }
+
+    if (nextStatus !== subscription.status) {
+      subscription.status = nextStatus;
+
+      await this.subscriptionsRepository.save(subscription);
+    }
+  }
+
+  private today(): string {
+    return new Date().toISOString().slice(0, 10);
   }
 
   private addDays(date: string, days: number): string {

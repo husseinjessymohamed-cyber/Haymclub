@@ -83,6 +83,23 @@ export class TraineeSubscription extends BaseEntity {
   subscriptionNumber: string;
 
   @Column({
+    name: 'renewed_from_subscription_id',
+    type: 'uuid',
+    nullable: true,
+    unique: true,
+  })
+  renewedFromSubscriptionId: string | null;
+
+  @ManyToOne(() => TraineeSubscription, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({
+    name: 'renewed_from_subscription_id',
+  })
+  renewedFromSubscription: TraineeSubscription | null;
+
+  @Column({
     name: 'start_date',
     type: 'date',
   })

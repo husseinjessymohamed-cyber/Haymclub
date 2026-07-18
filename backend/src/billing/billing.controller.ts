@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   ForbiddenException,
@@ -18,6 +19,8 @@ import type { Trainee } from '../trainees/entities/trainee.entity';
 import { TraineesService } from '../trainees/trainees.service';
 import { BillingService } from './billing.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
+import { RenewSubscriptionDto } from './dto/renew-subscription.dto';
+import { BillingAlertsQueryDto } from './dto/billing-alerts-query.dto';
 import { CreateSubscriptionPlanDto } from './dto/create-subscription-plan.dto';
 import { CreateTraineeSubscriptionDto } from './dto/create-trainee-subscription.dto';
 import { FindSubscriptionPlansQueryDto } from './dto/find-subscription-plans-query.dto';
@@ -179,6 +182,84 @@ export class BillingController {
     return this.billingService.findSubscriptions(filters);
   }
 
+  @Get('alerts')
+  @Roles(
+    AcademyRole.SUPER_ADMIN,
+    AcademyRole.ACADEMY_ADMIN,
+    AcademyRole.BRANCH_MANAGER,
+    AcademyRole.RECEPTIONIST,
+    AcademyRole.ACCOUNTANT,
+  )
+  getAlerts(
+    @Query()
+    query: BillingAlertsQueryDto,
+
+    @CurrentUser()
+    currentUser: JwtPayload,
+  ) {
+    const scope = this.resolveBillingScope(
+      currentUser,
+      query.academyId,
+      query.branchId,
+    );
+
+    return this.billingService.getAlerts({
+      academyId: scope.academyId,
+      branchId: scope.branchId,
+      days: query.days ?? 7,
+    });
+  }
+
+  @Post('maintenance/sync-subscriptions')
+  @Roles(
+    AcademyRole.SUPER_ADMIN,
+    AcademyRole.ACADEMY_ADMIN,
+    AcademyRole.BRANCH_MANAGER,
+  )
+  syncSubscriptionStatuses(
+    @Query()
+    query: BillingAlertsQueryDto,
+
+    @CurrentUser()
+    currentUser: JwtPayload,
+  ) {
+    const scope = this.resolveBillingScope(
+      currentUser,
+      query.academyId,
+      query.branchId,
+    );
+
+    return this.billingService.syncSubscriptionStatuses(
+      scope.academyId,
+      scope.branchId,
+    );
+  }
+
+  @Post('subscriptions/:id/renew')
+  @Roles(
+    AcademyRole.SUPER_ADMIN,
+    AcademyRole.ACADEMY_ADMIN,
+    AcademyRole.BRANCH_MANAGER,
+    AcademyRole.RECEPTIONIST,
+    AcademyRole.ACCOUNTANT,
+  )
+  async renewSubscription(
+    @Param('id', new ParseUUIDPipe())
+    id: string,
+
+    @Body()
+    dto: RenewSubscriptionDto,
+
+    @CurrentUser()
+    currentUser: JwtPayload,
+  ) {
+    const subscription = await this.billingService.findSubscription(id);
+
+    this.assertSubscriptionAccess(currentUser, subscription);
+
+    return this.billingService.renewSubscription(id, dto);
+  }
+
   @Get('subscriptions/:id')
   @Roles(
     AcademyRole.SUPER_ADMIN,
@@ -268,6 +349,40 @@ export class BillingController {
     this.assertTraineeAccess(currentUser, trainee);
 
     return this.billingService.getTraineeSummary(traineeId);
+  }
+
+  private resolveBillingScope(
+    currentUser: JwtPayload,
+    requestedAcademyId?: string,
+    requestedBranchId?: string,
+  ): {
+    academyId: string;
+    branchId?: string;
+  } {
+    let academyId = requestedAcademyId;
+
+    let branchId = requestedBranchId;
+
+    if (currentUser.role !== AcademyRole.SUPER_ADMIN) {
+      academyId = currentUser.academyId ?? undefined;
+    }
+
+    if (!academyId) {
+      throw new BadRequestException('academyId is required');
+    }
+
+    if (
+      currentUser.role === AcademyRole.BRANCH_MANAGER ||
+      currentUser.role === AcademyRole.RECEPTIONIST ||
+      currentUser.role === AcademyRole.ACCOUNTANT
+    ) {
+      branchId = currentUser.branchId ?? undefined;
+    }
+
+    return {
+      academyId,
+      branchId,
+    };
   }
 
   private assertAcademyAccess(
