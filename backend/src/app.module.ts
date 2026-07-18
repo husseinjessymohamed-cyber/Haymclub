@@ -3,6 +3,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 
 import { AcademiesModule } from './academies/academies.module';
+import { AttendanceModule } from './attendance/attendance.module';
 import { AppController } from './app.controller';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
@@ -32,6 +33,7 @@ import { UsersModule } from './users/users.module';
     TrainingProgramsModule,
     TrainingGroupsModule,
     TraineesModule,
+    AttendanceModule,
   ],
   controllers: [AppController],
   providers: [
