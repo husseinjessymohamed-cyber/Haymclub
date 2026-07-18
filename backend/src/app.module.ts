@@ -9,6 +9,7 @@ import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { BranchesModule } from './branches/branches.module';
+import { BillingModule } from './billing/billing.module';
 import { DatabaseModule } from './database/database.module';
 import { MembershipsModule } from './memberships/memberships.module';
 import { SportsModule } from './sports/sports.module';
@@ -34,6 +35,7 @@ import { UsersModule } from './users/users.module';
     TrainingGroupsModule,
     TraineesModule,
     AttendanceModule,
+    BillingModule,
   ],
   controllers: [AppController],
   providers: [
