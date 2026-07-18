@@ -13,6 +13,7 @@ import { MembershipsModule } from './memberships/memberships.module';
 import { SportsModule } from './sports/sports.module';
 import { TrainingProgramsModule } from './training-programs/training-programs.module';
 import { TrainingGroupsModule } from './training-groups/training-groups.module';
+import { TraineesModule } from './trainees/trainees.module';
 import { UsersModule } from './users/users.module';
 
 @Module({
@@ -30,6 +31,7 @@ import { UsersModule } from './users/users.module';
     SportsModule,
     TrainingProgramsModule,
     TrainingGroupsModule,
+    TraineesModule,
   ],
   controllers: [AppController],
   providers: [
