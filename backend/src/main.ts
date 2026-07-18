@@ -1,6 +1,7 @@
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import compression from 'compression';
+import type { Request, Response } from 'express';
 import helmet from 'helmet';
 
 import { AppModule } from './app.module';
@@ -45,10 +46,21 @@ async function bootstrap(): Promise<void> {
 
   const app = await NestFactory.create(AppModule);
 
-  app.setGlobalPrefix('api');
-
   app.use(helmet());
   app.use(compression());
+
+  /*
+   * المتصفح يطلب favicon.ico تلقائيًا عند فتح رابط الـBackend.
+   * نرجع 204 بدل ظهور خطأ 404 في Console.
+   */
+  app.use(
+    '/favicon.ico',
+    (_request: Request, response: Response): void => {
+      response.status(204).end();
+    },
+  );
+
+  app.setGlobalPrefix('api');
 
   const allowedOrigins = getAllowedOrigins();
 
@@ -58,8 +70,9 @@ async function bootstrap(): Promise<void> {
 
   app.enableCors({
     origin: (origin, callback) => {
-      // السماح بطلبات curl وPostman والطلبات الداخلية
-      // لأنها قد لا تحتوي على Origin
+      /*
+       * طلبات curl وPostman والطلبات الداخلية قد لا تحتوي على Origin.
+       */
       if (!origin) {
         callback(null, true);
         return;
@@ -109,6 +122,7 @@ async function bootstrap(): Promise<void> {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+
       transformOptions: {
         enableImplicitConversion: true,
       },
@@ -118,6 +132,12 @@ async function bootstrap(): Promise<void> {
   app.enableShutdownHooks();
 
   const port = Number(process.env.PORT ?? 3000);
+
+  if (!Number.isInteger(port) || port <= 0) {
+    throw new Error(
+      `Invalid PORT value: ${process.env.PORT ?? 'undefined'}`,
+    );
+  }
 
   await app.listen(port, '0.0.0.0');
 
