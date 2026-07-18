@@ -28,10 +28,6 @@ export class AuthService {
       throw new UnauthorizedException('User account is not active');
     }
 
-    if (!user.passwordHash) {
-      throw new UnauthorizedException('Invalid email or password');
-    }
-
     const passwordMatches = await bcrypt.compare(
       loginDto.password,
       user.passwordHash,
