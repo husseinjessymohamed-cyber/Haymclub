@@ -15,3 +15,4 @@ frontend/.env
 *.log
 .DS_Store
 coverage/
+start-haymclub.sh
