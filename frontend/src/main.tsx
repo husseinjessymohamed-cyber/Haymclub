@@ -9,33 +9,38 @@ import {
   useState,
 } from 'react';
 
-import { createRoot } from 'react-dom/client';
+import {
+  createRoot,
+} from 'react-dom/client';
 
 import App from './App';
 import { AttendancePage } from './features/attendance/AttendancePage';
 import { BillingPage } from './features/billing/BillingPage';
 import { GroupsPage } from './features/groups/GroupsPage';
+import { SettingsPage } from './features/settings/SettingsPage';
 import { TraineesPage } from './features/trainees/TraineesPage';
 import { UsersPage } from './features/users/UsersPage';
-import { SettingsPage } from './features/settings/SettingsPage';
 
 import './index.css';
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 30_000,
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
+const queryClient =
+  new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 30_000,
+        retry: 1,
+        refetchOnWindowFocus:
+          false,
+      },
 
-    mutations: {
-      retry: 0,
+      mutations: {
+        retry: 0,
+      },
     },
-  },
-});
+  });
 
-function getCurrentRoute(): string {
+function getCurrentRoute():
+string {
   return window.location.hash
     .replace(/^#\/?/, '')
     .trim()
@@ -43,47 +48,21 @@ function getCurrentRoute(): string {
 }
 
 function RootApplication() {
-  const [route, setRoute] = useState(
-    getCurrentRoute(),
-  );
-
-  const [authenticated, setAuthenticated] =
-    useState(() =>
-      Boolean(
-        localStorage.getItem(
-          'haymclub_token',
-        ),
-      ),
+  const [route, setRoute] =
+    useState(
+      getCurrentRoute,
     );
 
   useEffect(() => {
-    const refreshRoute = (): void => {
-      setRoute(getCurrentRoute());
-    };
-
-    const refreshAuthentication = (): void => {
-      setAuthenticated(
-        Boolean(
-          localStorage.getItem(
-            'haymclub_token',
-          ),
-        ),
+    function refreshRoute(): void {
+      setRoute(
+        getCurrentRoute(),
       );
-    };
+    }
 
     window.addEventListener(
       'hashchange',
       refreshRoute,
-    );
-
-    window.addEventListener(
-      'storage',
-      refreshAuthentication,
-    );
-
-    const timer = window.setInterval(
-      refreshAuthentication,
-      700,
     );
 
     return () => {
@@ -91,22 +70,17 @@ function RootApplication() {
         'hashchange',
         refreshRoute,
       );
-
-      window.removeEventListener(
-        'storage',
-        refreshAuthentication,
-      );
-
-      window.clearInterval(timer);
     };
   }, []);
+
+  function backToDashboard(): void {
+    window.location.hash = '';
+  }
 
   if (route === 'trainees') {
     return (
       <TraineesPage
-        onBack={() => {
-          window.location.hash = '';
-        }}
+        onBack={backToDashboard}
       />
     );
   }
@@ -114,9 +88,7 @@ function RootApplication() {
   if (route === 'groups') {
     return (
       <GroupsPage
-        onBack={() => {
-          window.location.hash = '';
-        }}
+        onBack={backToDashboard}
       />
     );
   }
@@ -124,9 +96,7 @@ function RootApplication() {
   if (route === 'attendance') {
     return (
       <AttendancePage
-        onBack={() => {
-          window.location.hash = '';
-        }}
+        onBack={backToDashboard}
       />
     );
   }
@@ -134,114 +104,34 @@ function RootApplication() {
   if (route === 'billing') {
     return (
       <BillingPage
-        onBack={() => {
-          window.location.hash = '';
-        }}
+        onBack={backToDashboard}
       />
     );
   }
-
 
   if (route === 'users') {
     return (
       <UsersPage
-        onBack={() => {
-          window.location.hash = '';
-        }}
+        onBack={backToDashboard}
       />
     );
   }
-
 
   if (route === 'settings') {
     return (
       <SettingsPage
-        onBack={() => {
-          window.location.hash = '';
-        }}
+        onBack={backToDashboard}
       />
     );
   }
 
-  return (
-    <>
-      <App />
-
-      {authenticated && (
-        <div className="haymclub-page-shortcuts">
-          <button
-            type="button"
-            className="haymclub-trainees-shortcut"
-            onClick={() => {
-              window.location.hash =
-                'trainees';
-            }}
-          >
-            👥 إدارة المتدربين
-          </button>
-
-          <button
-            type="button"
-            className="haymclub-groups-shortcut"
-            onClick={() => {
-              window.location.hash =
-                'groups';
-            }}
-          >
-            ⚽ إدارة المجموعات
-          </button>
-
-          <button
-            type="button"
-            className="haymclub-groups-shortcut"
-            onClick={() => {
-              window.location.hash =
-                'attendance';
-            }}
-          >
-            📋 الحضور والغياب
-          </button>
-
-          <button
-            type="button"
-            className="haymclub-groups-shortcut"
-            onClick={() => {
-              window.location.hash =
-                'billing';
-            }}
-          >
-            💳 الاشتراكات
-          </button>
-
-          <button
-            type="button"
-            className="haymclub-groups-shortcut"
-            onClick={() => {
-              window.location.hash =
-                'users';
-            }}
-          >
-            👤 المستخدمون
-          </button>
-
-          <button
-            type="button"
-            className="haymclub-groups-shortcut"
-            onClick={() => {
-              window.location.hash =
-                'settings';
-            }}
-          >
-            ⚙️ الإعدادات
-          </button>
-        </div>
-      )}
-    </>
-  );
+  return <App />;
 }
 
 const rootElement =
-  document.getElementById('root');
+  document.getElementById(
+    'root',
+  );
 
 if (!rootElement) {
   throw new Error(
@@ -251,7 +141,9 @@ if (!rootElement) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
+    <QueryClientProvider
+      client={queryClient}
+    >
       <RootApplication />
     </QueryClientProvider>
   </StrictMode>,

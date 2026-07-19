@@ -1,3 +1,9 @@
+import type {
+  AcademyRole,
+  UserMembership,
+  UserProfile,
+} from './users';
+
 export interface DashboardOverview {
   generatedAt: string;
 
@@ -49,4 +55,37 @@ export interface DashboardOverview {
     outstanding: number;
     overdueBalances: number;
   };
+}
+
+export interface DashboardFilters {
+  academyId: string;
+  branchId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+export interface DashboardAcademy {
+  id: string;
+  name: string;
+  slug: string;
+  currency?: string;
+  status?: string;
+  isActive?: boolean;
+}
+
+export interface DashboardBranch {
+  id: string;
+  academyId: string;
+  name: string;
+  code: string;
+  isMain?: boolean;
+  isActive?: boolean;
+}
+
+export interface DashboardContext {
+  currentUser: UserProfile;
+  currentMembership?: UserMembership;
+  currentRole?: AcademyRole;
+  academies: DashboardAcademy[];
+  branches: DashboardBranch[];
 }
