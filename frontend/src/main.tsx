@@ -17,6 +17,7 @@ import { BillingPage } from './features/billing/BillingPage';
 import { GroupsPage } from './features/groups/GroupsPage';
 import { TraineesPage } from './features/trainees/TraineesPage';
 import { UsersPage } from './features/users/UsersPage';
+import { SettingsPage } from './features/settings/SettingsPage';
 
 import './index.css';
 
@@ -151,6 +152,17 @@ function RootApplication() {
     );
   }
 
+
+  if (route === 'settings') {
+    return (
+      <SettingsPage
+        onBack={() => {
+          window.location.hash = '';
+        }}
+      />
+    );
+  }
+
   return (
     <>
       <App />
@@ -210,6 +222,17 @@ function RootApplication() {
             }}
           >
             👤 المستخدمون
+          </button>
+
+          <button
+            type="button"
+            className="haymclub-groups-shortcut"
+            onClick={() => {
+              window.location.hash =
+                'settings';
+            }}
+          >
+            ⚙️ الإعدادات
           </button>
         </div>
       )}
