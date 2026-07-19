@@ -13,6 +13,7 @@ import { createRoot } from 'react-dom/client';
 
 import App from './App';
 import { AttendancePage } from './features/attendance/AttendancePage';
+import { BillingPage } from './features/billing/BillingPage';
 import { GroupsPage } from './features/groups/GroupsPage';
 import { TraineesPage } from './features/trainees/TraineesPage';
 
@@ -128,6 +129,16 @@ function RootApplication() {
     );
   }
 
+  if (route === 'billing') {
+    return (
+      <BillingPage
+        onBack={() => {
+          window.location.hash = '';
+        }}
+      />
+    );
+  }
+
   return (
     <>
       <App />
@@ -165,6 +176,17 @@ function RootApplication() {
             }}
           >
             📋 الحضور والغياب
+          </button>
+
+          <button
+            type="button"
+            className="haymclub-groups-shortcut"
+            onClick={() => {
+              window.location.hash =
+                'billing';
+            }}
+          >
+            💳 الاشتراكات
           </button>
         </div>
       )}
