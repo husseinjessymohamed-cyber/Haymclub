@@ -12,6 +12,7 @@ import {
 import { createRoot } from 'react-dom/client';
 
 import App from './App';
+import { AttendancePage } from './features/attendance/AttendancePage';
 import { GroupsPage } from './features/groups/GroupsPage';
 import { TraineesPage } from './features/trainees/TraineesPage';
 
@@ -117,6 +118,16 @@ function RootApplication() {
     );
   }
 
+  if (route === 'attendance') {
+    return (
+      <AttendancePage
+        onBack={() => {
+          window.location.hash = '';
+        }}
+      />
+    );
+  }
+
   return (
     <>
       <App />
@@ -143,6 +154,17 @@ function RootApplication() {
             }}
           >
             ⚽ إدارة المجموعات
+          </button>
+
+          <button
+            type="button"
+            className="haymclub-groups-shortcut"
+            onClick={() => {
+              window.location.hash =
+                'attendance';
+            }}
+          >
+            📋 الحضور والغياب
           </button>
         </div>
       )}
