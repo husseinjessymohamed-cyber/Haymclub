@@ -87,3 +87,8 @@ a {
     width: 100%;
   }
 }
+
+.haymclub-page-shortcuts {
+  flex-wrap: wrap;
+  max-width: calc(100vw - 40px);
+}

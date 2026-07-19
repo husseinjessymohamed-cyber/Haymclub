@@ -16,6 +16,7 @@ import { AttendancePage } from './features/attendance/AttendancePage';
 import { BillingPage } from './features/billing/BillingPage';
 import { GroupsPage } from './features/groups/GroupsPage';
 import { TraineesPage } from './features/trainees/TraineesPage';
+import { UsersPage } from './features/users/UsersPage';
 
 import './index.css';
 
@@ -139,6 +140,17 @@ function RootApplication() {
     );
   }
 
+
+  if (route === 'users') {
+    return (
+      <UsersPage
+        onBack={() => {
+          window.location.hash = '';
+        }}
+      />
+    );
+  }
+
   return (
     <>
       <App />
@@ -187,6 +199,17 @@ function RootApplication() {
             }}
           >
             💳 الاشتراكات
+          </button>
+
+          <button
+            type="button"
+            className="haymclub-groups-shortcut"
+            onClick={() => {
+              window.location.hash =
+                'users';
+            }}
+          >
+            👤 المستخدمون
           </button>
         </div>
       )}
