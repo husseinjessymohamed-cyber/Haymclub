@@ -101,6 +101,19 @@ NavigationItem[] = [
     ],
   },
   {
+    label: 'التقارير',
+    icon: '📊',
+    route: 'reports',
+    roles: [
+      'SUPER_ADMIN',
+      'ACADEMY_ADMIN',
+      'BRANCH_MANAGER',
+      'RECEPTIONIST',
+      'ACCOUNTANT',
+      'COACH',
+    ],
+  },
+  {
     label: 'المستخدمون',
     icon: '👤',
     route: 'users',

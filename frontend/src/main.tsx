@@ -17,6 +17,7 @@ import App from './App';
 import { AttendancePage } from './features/attendance/AttendancePage';
 import { BillingPage } from './features/billing/BillingPage';
 import { GroupsPage } from './features/groups/GroupsPage';
+import { ReportsPage } from './features/reports/ReportsPage';
 import { SettingsPage } from './features/settings/SettingsPage';
 import { TraineesPage } from './features/trainees/TraineesPage';
 import { UsersPage } from './features/users/UsersPage';
@@ -104,6 +105,15 @@ function RootApplication() {
   if (route === 'billing') {
     return (
       <BillingPage
+        onBack={backToDashboard}
+      />
+    );
+  }
+
+
+  if (route === 'reports') {
+    return (
+      <ReportsPage
         onBack={backToDashboard}
       />
     );
