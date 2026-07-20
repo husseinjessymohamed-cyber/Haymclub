@@ -7,6 +7,8 @@ import {
 } from './trainees-api';
 
 import type {
+  SportOption,
+  CreateTrainingProgramInput,
   BranchOption,
   CoachOption,
   CreateScheduleInput,
@@ -42,6 +44,19 @@ export async function getTrainingGroups(
 
   return asArray<TrainingGroup>(
     unwrapResponse<unknown>(response.data),
+  );
+}
+
+export async function createTrainingProgram(
+  input: CreateTrainingProgramInput,
+): Promise<TrainingProgramOption> {
+  const response = await api.post(
+    '/training-programs',
+    input,
+  );
+
+  return unwrapResponse<TrainingProgramOption>(
+    response.data,
   );
 }
 
@@ -102,6 +117,7 @@ export async function getGroupOptions(): Promise<{
   branchName?: string;
   branches: BranchOption[];
   programs: TrainingProgramOption[];
+  sports: SportOption[];
   coaches: CoachOption[];
 }> {
   const context = await getAcademyContext();
@@ -109,6 +125,7 @@ export async function getGroupOptions(): Promise<{
   const [
     branchesResponse,
     programsResponse,
+    sportsResponse,
     usersResponse,
   ] = await Promise.all([
     api.get('/branches'),
@@ -117,6 +134,7 @@ export async function getGroupOptions(): Promise<{
         isActive: true,
       },
     }),
+    api.get('/sports'),
     api.get('/users'),
   ]);
 
@@ -131,6 +149,15 @@ export async function getGroupOptions(): Promise<{
       programsResponse.data,
     ),
   ).filter((program) => program.isActive !== false);
+
+  const sports = asArray<SportOption>(
+    unwrapResponse<unknown>(
+      sportsResponse.data,
+    ),
+  ).filter(
+    (sport) =>
+      sport.isActive !== false,
+  );
 
   const users = asArray<CoachOption>(
     unwrapResponse<unknown>(usersResponse.data),
@@ -155,6 +182,7 @@ export async function getGroupOptions(): Promise<{
     ...context,
     branches,
     programs,
+    sports,
     coaches,
   };
 }

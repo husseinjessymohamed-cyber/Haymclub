@@ -22,8 +22,10 @@ export interface BranchOption {
 
 export interface SportOption {
   id: string;
+  academyId?: string;
   name: string;
   code?: string;
+  isActive?: boolean;
 }
 
 export interface TrainingProgramOption {
@@ -39,6 +41,17 @@ export interface TrainingProgramOption {
   capacity: number | null;
   isActive: boolean;
   sport?: SportOption;
+}
+
+export interface CreateTrainingProgramInput {
+  academyId: string;
+  sportId: string;
+  name: string;
+  code: string;
+  sessionsPerWeek?: number;
+  sessionDurationMinutes?: number;
+  capacity?: number;
+  isActive?: boolean;
 }
 
 export interface AcademyMembershipSummary {

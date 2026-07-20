@@ -1,11 +1,13 @@
 import {
+  createTrainingProgram,
   useCallback,
   useEffect,
   useMemo,
   useState,
 } from 'react';
 
-import type { FormEvent } from 'react';
+import type {
+  SportOption, FormEvent } from 'react';
 
 import {
   addTrainingGroupSchedule,
@@ -36,7 +38,7 @@ interface GroupsPageProps {
 
 interface GroupFormState {
   branchId: string;
-  programId: string;
+  sportId: string;
   coachId: string;
   name: string;
   code: string;
@@ -65,7 +67,7 @@ const EMPTY_SCHEDULE: ScheduleFormState = {
 
 const EMPTY_FORM: GroupFormState = {
   branchId: '',
-  programId: '',
+  sportId: '',
   coachId: '',
   name: '',
   code: '',
@@ -124,6 +126,10 @@ export function GroupsPage({
     TrainingProgramOption[]
   >([]);
 
+  const [sports, setSports] = useState<
+    SportOption[]
+  >([]);
+
   const [coaches, setCoaches] = useState<
     CoachOption[]
   >([]);
@@ -170,6 +176,7 @@ export function GroupsPage({
 
     setBranches(result.branches);
     setPrograms(result.programs);
+    setSports(result.sports);
     setCoaches(result.coaches);
     setAcademyId(result.academyId ?? '');
     setAcademyName(
@@ -274,12 +281,21 @@ export function GroupsPage({
         (program) => program.isActive,
       ) ?? programs[0];
 
+    const defaultSport =
+      sports.find(
+        (sport) =>
+          sport.isActive !== false,
+      ) ?? sports[0];
+
     setEditingGroup(null);
 
     setForm({
       ...EMPTY_FORM,
       branchId: defaultBranch?.id ?? '',
-      programId: defaultProgram?.id ?? '',
+      sportId:
+        defaultSport?.id ??
+        defaultProgram?.sportId ??
+        '',
     });
 
     setError('');
@@ -294,7 +310,13 @@ export function GroupsPage({
 
     setForm({
       branchId: group.branchId,
-      programId: group.programId,
+      sportId:
+        group.program?.sportId ??
+        programs.find(
+          (program) =>
+            program.id === group.programId,
+        )?.sportId ??
+        '',
       coachId: group.coachId ?? '',
       name: group.name,
       code: group.code,
@@ -389,12 +411,96 @@ export function GroupsPage({
         );
       }
 
+      const groupName =
+        form.name.trim();
+
+      const groupCode =
+        form.code
+          .trim()
+          .toUpperCase();
+
+      if (groupName.length < 2) {
+        throw new Error(
+          'اكتب اسم المجموعة',
+        );
+      }
+
+      if (!form.sportId) {
+        throw new Error(
+          'اختر نوع الرياضة',
+        );
+      }
+
+      if (!academyId) {
+        throw new Error(
+          'تعذر تحديد الأكاديمية الحالية',
+        );
+      }
+
+      let resolvedProgramId:
+        string;
+
+      const existingProgram =
+        programs.find(
+          (program) =>
+            program.sportId ===
+              form.sportId &&
+            program.name
+              .trim()
+              .toLowerCase() ===
+              groupName.toLowerCase(),
+        );
+
+      if (existingProgram) {
+        resolvedProgramId =
+          existingProgram.id;
+      } else {
+        const suffix =
+          Date.now()
+            .toString(36)
+            .toUpperCase();
+
+        const programCodeBase =
+          `PRG_${groupCode}`
+            .replace(
+              /[^A-Z0-9_-]/g,
+              '_',
+            )
+            .slice(0, 34);
+
+        const createdProgram =
+          await createTrainingProgram({
+            academyId,
+            sportId:
+              form.sportId,
+            name:
+              groupName,
+            code:
+              `${programCodeBase}_${suffix}`
+                .slice(0, 50),
+            sessionsPerWeek: 2,
+            sessionDurationMinutes: 60,
+            capacity,
+            isActive: true,
+          });
+
+        resolvedProgramId =
+          createdProgram.id;
+
+        setPrograms(
+          (current) => [
+            ...current,
+            createdProgram,
+          ],
+        );
+      }
+
       if (editingGroup) {
         await updateTrainingGroup(
           editingGroup.id,
           {
             branchId: form.branchId,
-            programId: form.programId,
+            programId: resolvedProgramId,
             coachId: form.coachId || null,
             name: form.name.trim(),
             code: form.code
@@ -421,7 +527,7 @@ export function GroupsPage({
         await createTrainingGroup({
           academyId,
           branchId: form.branchId,
-          programId: form.programId,
+          programId: resolvedProgramId,
           coachId: form.coachId || null,
           name: form.name.trim(),
           code: form.code
@@ -1024,36 +1130,51 @@ export function GroupsPage({
                 </label>
 
                 <label>
-                  البرنامج التدريبي
+                  نوع الرياضة
+
                   <select
                     required
-                    value={form.programId}
-                    onChange={(event) => {
-                      setForm((current) => ({
-                        ...current,
-                        programId:
-                          event.target.value,
-                      }));
-                    }}
+                    value={form.sportId}
+                    onChange={(event) =>
+                      setForm(
+                        (current) => ({
+                          ...current,
+                          sportId:
+                            event.target.value,
+                        }),
+                      )
+                    }
                   >
                     <option value="">
-                      اختر البرنامج
+                      اختر نوع الرياضة
                     </option>
 
-                    {programs.map(
-                      (program) => (
+                    {sports.map(
+                      (sport) => (
                         <option
-                          key={program.id}
-                          value={program.id}
+                          key={sport.id}
+                          value={sport.id}
                         >
-                          {program.name}
-                          {program.sport?.name
-                            ? ` — ${program.sport.name}`
-                            : ''}
+                          {sport.name}
                         </option>
                       ),
                     )}
                   </select>
+                </label>
+
+                <label>
+                  اسم البرنامج التدريبي
+
+                  <input
+                    type="text"
+                    readOnly
+                    value={form.name}
+                    placeholder="سيظهر تلقائيًا من اسم المجموعة"
+                  />
+
+                  <small className="groups-auto-program-note">
+                    يتم إنشاء البرنامج تلقائيًا بنفس اسم المجموعة.
+                  </small>
                 </label>
 
                 <label>
