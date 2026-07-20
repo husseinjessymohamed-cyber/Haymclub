@@ -19,10 +19,6 @@ import {
 } from '../../lib/dashboard-api';
 
 import type {
-  DashboardOverview,
-} from '../../types/dashboard';
-
-import type {
   AcademyRole,
 } from '../../types/users';
 
@@ -111,6 +107,16 @@ NavigationItem[] = [
       'RECEPTIONIST',
       'ACCOUNTANT',
       'COACH',
+    ],
+  },
+  {
+    label: 'بوابة العملاء',
+    icon: '👨‍👩‍👦',
+    route: 'portal-links',
+    roles: [
+      'SUPER_ADMIN',
+      'ACADEMY_ADMIN',
+      'BRANCH_MANAGER',
     ],
   },
   {

@@ -17,6 +17,7 @@ import App from './App';
 import { AttendancePage } from './features/attendance/AttendancePage';
 import { BillingPage } from './features/billing/BillingPage';
 import { GroupsPage } from './features/groups/GroupsPage';
+import { PortalLinksPage } from './features/portal/PortalLinksPage';
 import { ReportsPage } from './features/reports/ReportsPage';
 import { SettingsPage } from './features/settings/SettingsPage';
 import { TraineesPage } from './features/trainees/TraineesPage';
@@ -110,6 +111,15 @@ function RootApplication() {
     );
   }
 
+
+
+  if (route === 'portal-links') {
+    return (
+      <PortalLinksPage
+        onBack={backToDashboard}
+      />
+    );
+  }
 
   if (route === 'reports') {
     return (

@@ -1,5 +1,6 @@
 import {
   useMutation,
+  useQuery,
 } from '@tanstack/react-query';
 
 import axios from 'axios';
@@ -12,11 +13,26 @@ import type {
   FormEvent,
 } from 'react';
 
-import { DashboardPage } from './features/dashboard/DashboardPage';
+import {
+  DashboardPage,
+} from './features/dashboard/DashboardPage';
+
+import {
+  ClientPortalPage,
+} from './features/portal/ClientPortalPage';
+
 import {
   AUTH_TOKEN_KEY,
   login,
 } from './lib/api';
+
+import {
+  getAuthenticatedProfile,
+} from './lib/portal-api';
+
+import type {
+  UserProfile,
+} from './types/users';
 
 import './App.css';
 
@@ -47,6 +63,22 @@ function getErrorMessage(
   }
 
   return 'حدث خطأ غير متوقع';
+}
+
+function activeRole(
+  profile: UserProfile,
+): string | undefined {
+  return (
+    profile.memberships.find(
+      (membership) =>
+        membership.isPrimary &&
+        membership.isActive,
+    ) ??
+    profile.memberships.find(
+      (membership) =>
+        membership.isActive,
+    )
+  )?.role;
 }
 
 interface LoginPageProps {
@@ -82,7 +114,8 @@ function LoginPage({
     });
 
   function handleSubmit(
-    event: FormEvent<HTMLFormElement>,
+    event:
+      FormEvent<HTMLFormElement>,
   ): void {
     event.preventDefault();
     loginMutation.mutate();
@@ -105,8 +138,9 @@ function LoginPage({
         <h1>Haymclub</h1>
 
         <p className="description">
-          سجّل الدخول للوصول إلى لوحة
-          التحكم وإدارة بيانات الأكاديمية.
+          سجّل الدخول للوصول إلى حسابك
+          وإدارة أو متابعة بيانات
+          الأكاديمية.
         </p>
 
         <form
@@ -178,6 +212,21 @@ function App() {
         ),
     );
 
+  const profileQuery = useQuery({
+    queryKey: [
+      'authenticated-profile',
+      token,
+    ],
+
+    queryFn:
+      getAuthenticatedProfile,
+
+    enabled:
+      Boolean(token),
+
+    staleTime: 60_000,
+  });
+
   function handleLogout(): void {
     localStorage.removeItem(
       AUTH_TOKEN_KEY,
@@ -191,6 +240,77 @@ function App() {
     return (
       <LoginPage
         onSuccess={setToken}
+      />
+    );
+  }
+
+  if (profileQuery.isPending) {
+    return (
+      <main
+        className="state-page"
+        dir="rtl"
+      >
+        <div className="loader" />
+
+        <h1>
+          جارٍ فتح الحساب
+        </h1>
+      </main>
+    );
+  }
+
+  if (
+    profileQuery.isError ||
+    !profileQuery.data
+  ) {
+    return (
+      <main
+        className="state-page"
+        dir="rtl"
+      >
+        <h1>
+          تعذر تحميل الحساب
+        </h1>
+
+        <p>
+          {getErrorMessage(
+            profileQuery.error,
+          )}
+        </p>
+
+        <div className="state-buttons">
+          <button
+            type="button"
+            onClick={() =>
+              void profileQuery.refetch()
+            }
+          >
+            إعادة المحاولة
+          </button>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+          >
+            تسجيل الخروج
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  const role =
+    activeRole(
+      profileQuery.data,
+    );
+
+  if (
+    role === 'PARENT' ||
+    role === 'TRAINEE'
+  ) {
+    return (
+      <ClientPortalPage
+        onLogout={handleLogout}
       />
     );
   }
