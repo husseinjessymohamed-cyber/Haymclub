@@ -15,6 +15,7 @@ import { DatabaseModule } from './database/database.module';
 import { MembershipsModule } from './memberships/memberships.module';
 import { SportsModule } from './sports/sports.module';
 import { TraineesModule } from './trainees/trainees.module';
+import { PortalModule } from './portal/portal.module';
 import { TrainingGroupsModule } from './training-groups/training-groups.module';
 import { TrainingProgramsModule } from './training-programs/training-programs.module';
 import { UsersModule } from './users/users.module';
@@ -44,6 +45,7 @@ import { UsersModule } from './users/users.module';
     TrainingProgramsModule,
     TrainingGroupsModule,
     TraineesModule,
+    PortalModule,
     AttendanceModule,
     BillingModule,
     DashboardModule,
