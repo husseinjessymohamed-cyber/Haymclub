@@ -45,7 +45,7 @@ function hasClientRole(
 ): boolean {
   return (
     user.status === 'ACTIVE' &&
-    user.memberships.some(
+    (user.memberships ?? []).some(
       (membership) =>
         membership.isActive &&
         (

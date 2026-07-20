@@ -71,13 +71,16 @@ Partial<Record<AcademyRole, string>> = {
 function userMembership(
   user?: UserProfile,
 ): UserMembership | undefined {
+  const memberships =
+    user?.memberships ?? [];
+
   return (
-    user?.memberships.find(
+    memberships.find(
       (membership) =>
         membership.isPrimary &&
         membership.isActive,
     ) ??
-    user?.memberships.find(
+    memberships.find(
       (membership) =>
         membership.isActive,
     )

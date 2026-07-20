@@ -68,13 +68,16 @@ function getErrorMessage(
 function activeRole(
   profile: UserProfile,
 ): string | undefined {
+  const memberships =
+    profile.memberships ?? [];
+
   return (
-    profile.memberships.find(
+    memberships.find(
       (membership) =>
         membership.isPrimary &&
         membership.isActive,
     ) ??
-    profile.memberships.find(
+    memberships.find(
       (membership) =>
         membership.isActive,
     )
