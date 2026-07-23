@@ -120,6 +120,13 @@ export class TraineeSubscription extends BaseEntity {
   status: TraineeSubscriptionStatus;
 
   @Column({
+    name: 'sessions_limit',
+    type: 'integer',
+    nullable: true,
+  })
+  sessionsLimit: number | null;
+
+  @Column({
     name: 'subtotal_amount',
     type: 'numeric',
     precision: 12,

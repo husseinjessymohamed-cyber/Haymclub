@@ -77,6 +77,7 @@ export interface TraineeSubscription {
   startDate: string;
   endDate: string;
   status: TraineeSubscriptionStatus;
+  sessionsLimit: number | null;
   subtotalAmount: number;
   discountAmount: number;
   totalAmount: number;
@@ -125,7 +126,16 @@ export interface CreateTraineeSubscriptionInput {
 export interface RenewSubscriptionInput {
   planId?: string;
   startDate?: string;
+  endDate?: string;
+  price?: number;
+  registrationFee?: number;
+  sessionsLimit?: number;
   discountAmount?: number;
+  paymentAmount?: number;
+  paymentMethod?: PaymentMethod;
+  paidAt?: string;
+  referenceNumber?: string;
+  paymentNotes?: string;
   notes?: string;
 }
 
