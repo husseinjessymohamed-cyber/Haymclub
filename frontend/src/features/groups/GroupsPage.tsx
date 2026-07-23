@@ -111,6 +111,79 @@ function coachName(
   return `${coach.firstName} ${coach.lastName}`;
 }
 
+function normalizeSportSearchValue(
+  value: string,
+): string {
+  return value
+    .toLocaleLowerCase('ar')
+    .normalize('NFKD')
+    .replace(/[\u064B-\u065F\u0670]/g, '')
+    .replace(/[أإآ]/g, 'ا')
+    .replace(/ة/g, 'ه')
+    .replace(/ى/g, 'ي')
+    .replace(/ؤ/g, 'و')
+    .replace(/ئ/g, 'ي')
+    .replace(/كوره/g, 'كره')
+    .replace(
+      /[^a-z0-9\u0600-\u06ff]+/g,
+      ' ',
+    )
+    .trim();
+}
+
+function detectSportIdFromGroupName(
+  groupName: string,
+  sports: SportOption[],
+): string {
+  const normalizedGroupName =
+    normalizeSportSearchValue(groupName);
+
+  if (!normalizedGroupName) {
+    return '';
+  }
+
+  const matchedSport = [...sports]
+    .sort(
+      (first, second) =>
+        second.name.length -
+        first.name.length,
+    )
+    .find((sport) => {
+      const normalizedSportName =
+        normalizeSportSearchValue(
+          sport.name,
+        );
+
+      const nameWithoutArticle =
+        normalizedSportName.startsWith('ال')
+          ? normalizedSportName.slice(2)
+          : normalizedSportName;
+
+      const normalizedSportCode =
+        normalizeSportSearchValue(
+          sport.code ?? '',
+        );
+
+      const searchTerms = [
+        normalizedSportName,
+        nameWithoutArticle,
+        normalizedSportCode,
+      ].filter(
+        (value) => value.length >= 2,
+      );
+
+      return searchTerms.some(
+        (term) =>
+          normalizedGroupName === term ||
+          normalizedGroupName.includes(
+            term,
+          ),
+      );
+    });
+
+  return matchedSport?.id ?? '';
+}
+
 export function GroupsPage({
   onBack,
 }: GroupsPageProps) {
@@ -170,6 +243,32 @@ export function GroupsPage({
     useState<ScheduleFormState>(
       EMPTY_SCHEDULE,
     );
+
+  useEffect(() => {
+    const detectedSportId =
+      detectSportIdFromGroupName(
+        form.name,
+        sports,
+      );
+
+    if (!detectedSportId) {
+      return;
+    }
+
+    setForm((current) => {
+      if (
+        current.sportId ===
+        detectedSportId
+      ) {
+        return current;
+      }
+
+      return {
+        ...current,
+        sportId: detectedSportId,
+      };
+    });
+  }, [form.name, sports]);
 
   const loadOptions = useCallback(async () => {
     const result = await getGroupOptions();
