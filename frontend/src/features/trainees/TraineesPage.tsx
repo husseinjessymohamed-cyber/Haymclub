@@ -30,6 +30,18 @@ import {
   getBillingReferenceData,
 } from '../../lib/billing-api';
 
+import {
+  enrollTraineeInGroup,
+} from '../../lib/trainees-api';
+
+import {
+  getTrainingGroups,
+} from '../../lib/groups-api';
+
+import type {
+  TrainingGroup,
+} from '../../types/groups';
+
 import './TraineesPage.css';
 
 interface TraineeSportOption {
@@ -309,6 +321,42 @@ function getCurrentGroup(trainee: Trainee): string {
 export function TraineesPage({
   onBack,
 }: TraineesPageProps) {
+
+  const [
+    availableTrainingGroups,
+    setAvailableTrainingGroups,
+  ] = useState<TrainingGroup[]>([]);
+
+  const [
+    selectedGroupId,
+    setSelectedGroupId,
+  ] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void getTrainingGroups()
+      .then((groups) => {
+        if (!cancelled) {
+          setAvailableTrainingGroups(
+            groups.filter(
+              (group) =>
+                group.isActive !== false,
+            ),
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setAvailableTrainingGroups([]);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const requestId = useRef(0);
 
   const [trainees, setTrainees] = useState<Trainee[]>(
@@ -447,6 +495,9 @@ export function TraineesPage({
   }, [trainees]);
 
   function openCreateModal(): void {
+    setSelectedGroupId('');
+
+
     setSubscriptionForm(
       createInitialSubscriptionForm(),
     );
@@ -563,6 +614,34 @@ export function TraineesPage({
           );
         }
 
+        if (!selectedGroupId) {
+          throw new Error(
+            'اختر المجموعة التدريبية',
+          );
+        }
+
+        const selectedTrainingGroup =
+          availableTrainingGroups.find(
+            (group) =>
+              group.id ===
+              selectedGroupId,
+          );
+
+        if (!selectedTrainingGroup) {
+          throw new Error(
+            'المجموعة المختارة غير موجودة',
+          );
+        }
+
+        if (
+          selectedTrainingGroup.branchId !==
+          branchId
+        ) {
+          throw new Error(
+            'المجموعة لا تتبع فرع المتدرب',
+          );
+        }
+
         const createInput: CreateTraineeInput = {
           academyId: context.academyId,
           branchId,
@@ -662,6 +741,20 @@ export function TraineesPage({
           );
 
         try {
+          await enrollTraineeInGroup(
+            createdTrainee.id,
+            selectedGroupId,
+          );
+        } catch (
+          enrollmentError: unknown
+        ) {
+          throw new Error(
+            `تم إنشاء المتدرب، لكن تعذر تسجيله في المجموعة: ${getApiErrorMessage(enrollmentError)}`,
+          );
+        }
+
+
+        try {
           const createdPlan =
             await createSubscriptionPlan({
               academyId:
@@ -725,7 +818,7 @@ export function TraineesPage({
         }
 
         setNotice(
-          'تمت إضافة المتدرب وإنشاء الاشتراك بنجاح',
+          'تمت إضافة المتدرب وتسجيله في المجموعة وإنشاء الاشتراك بنجاح',
         );
       }
 
@@ -1251,6 +1344,63 @@ export function TraineesPage({
                           ),
                         )}
                       </select>
+                    </label>
+
+                    <label>
+                      المجموعة التدريبية
+
+                      <select
+                        required
+                        value={
+                          selectedGroupId
+                        }
+                        onChange={(event) => {
+                          setSelectedGroupId(
+                            event.target.value,
+                          );
+                        }}
+                      >
+                        <option value="">
+                          اختر المجموعة
+                        </option>
+
+                        {availableTrainingGroups
+                          .filter(
+                            (group) =>
+                              group.isActive !==
+                                false &&
+                              (
+                                !form.branchId ||
+                                group.branchId ===
+                                  form.branchId
+                              ),
+                          )
+                          .map((group) => (
+                            <option
+                              key={group.id}
+                              value={group.id}
+                            >
+                              {group.name}
+                              {' — '}
+                              {group.code}
+                            </option>
+                          ))}
+                      </select>
+
+                      {availableTrainingGroups.filter(
+                        (group) =>
+                          group.isActive !== false &&
+                          (
+                            !form.branchId ||
+                            group.branchId ===
+                              form.branchId
+                          ),
+                      ).length === 0 && (
+                        <small>
+                          لا توجد مجموعات نشطة
+                          في هذا الفرع.
+                        </small>
+                      )}
                     </label>
 
                     <label>

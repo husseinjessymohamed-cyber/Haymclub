@@ -139,6 +139,22 @@ export async function updateTrainee(
   return unwrapResponse<Trainee>(response.data);
 }
 
+export async function enrollTraineeInGroup(
+  traineeId: string,
+  groupId: string,
+): Promise<unknown> {
+  const response = await api.post(
+    `/trainees/${traineeId}/enrollments`,
+    {
+      groupId,
+    },
+  );
+
+  return unwrapResponse<unknown>(
+    response.data,
+  );
+}
+
 export async function deleteTrainee(
   id: string,
 ): Promise<void> {
