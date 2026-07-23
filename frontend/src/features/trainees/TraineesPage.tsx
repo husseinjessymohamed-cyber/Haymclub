@@ -24,7 +24,185 @@ import type {
   UpdateTraineeInput,
 } from '../../types/trainees';
 
+import {
+  createSubscription,
+  createSubscriptionPlan,
+  getBillingReferenceData,
+} from '../../lib/billing-api';
+
 import './TraineesPage.css';
+
+interface TraineeSportOption {
+  id: string;
+  name: string;
+  code?: string;
+}
+
+interface TraineeSubscriptionFormState {
+  sportId: string;
+  startDate: string;
+  endDate: string;
+  price: string;
+  sessionsLimit: string;
+}
+
+function formatSubscriptionDate(
+  date: Date,
+): string {
+  const year = date.getFullYear();
+
+  const month = String(
+    date.getMonth() + 1,
+  ).padStart(2, '0');
+
+  const day = String(
+    date.getDate(),
+  ).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+}
+
+function createInitialSubscriptionForm():
+TraineeSubscriptionFormState {
+  const start = new Date();
+
+  const end = new Date(start);
+
+  end.setDate(
+    end.getDate() + 30,
+  );
+
+  return {
+    sportId: '',
+    startDate:
+      formatSubscriptionDate(start),
+    endDate:
+      formatSubscriptionDate(end),
+    price: '',
+    sessionsLimit: '',
+  };
+}
+
+function calculateTraineeAge(
+  dateOfBirth: string,
+): number | null {
+  if (!dateOfBirth) {
+    return null;
+  }
+
+  const birthDate = new Date(
+    `${dateOfBirth}T00:00:00`,
+  );
+
+  if (
+    Number.isNaN(
+      birthDate.getTime(),
+    )
+  ) {
+    return null;
+  }
+
+  const today = new Date();
+
+  let age =
+    today.getFullYear() -
+    birthDate.getFullYear();
+
+  const monthDifference =
+    today.getMonth() -
+    birthDate.getMonth();
+
+  if (
+    monthDifference < 0 ||
+    (
+      monthDifference === 0 &&
+      today.getDate() <
+        birthDate.getDate()
+    )
+  ) {
+    age -= 1;
+  }
+
+  return age >= 0
+    ? age
+    : null;
+}
+
+function calculateDurationDays(
+  startDate: string,
+  endDate: string,
+): number {
+  const startTime = Date.parse(
+    `${startDate}T00:00:00Z`,
+  );
+
+  const endTime = Date.parse(
+    `${endDate}T00:00:00Z`,
+  );
+
+  if (
+    Number.isNaN(startTime) ||
+    Number.isNaN(endTime)
+  ) {
+    throw new Error(
+      'تاريخ بداية أو نهاية الاشتراك غير صحيح',
+    );
+  }
+
+  const durationDays = Math.round(
+    (
+      endTime -
+      startTime
+    ) /
+      (
+        24 *
+        60 *
+        60 *
+        1000
+      ),
+  );
+
+  if (durationDays < 1) {
+    throw new Error(
+      'تاريخ نهاية الاشتراك يجب أن يكون بعد تاريخ البداية',
+    );
+  }
+
+  if (durationDays > 3650) {
+    throw new Error(
+      'مدة الاشتراك لا يمكن أن تتجاوز 10 سنوات',
+    );
+  }
+
+  return durationDays;
+}
+
+function createTraineePlanCode(
+  registrationCode?: string | null,
+): string {
+  const safeCode =
+    registrationCode
+      ?.trim()
+      .toUpperCase()
+      .replace(
+        /[^A-Z0-9_-]/g,
+        '_',
+      )
+      .replace(
+        /_+/g,
+        '_',
+      )
+      .slice(0, 24) ||
+    'TRAINEE';
+
+  const suffix =
+    Date.now()
+      .toString(36)
+      .toUpperCase();
+
+  return `TRN_${safeCode}_${suffix}`
+    .slice(0, 60);
+}
 
 interface TraineesPageProps {
   onBack: () => void;
@@ -181,6 +359,42 @@ export function TraineesPage({
       });
   }, []);
 
+  const [
+    subscriptionSports,
+    setSubscriptionSports,
+  ] = useState<TraineeSportOption[]>([]);
+
+  const [
+    subscriptionForm,
+    setSubscriptionForm,
+  ] =
+    useState<TraineeSubscriptionFormState>(
+      () =>
+        createInitialSubscriptionForm(),
+    );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void getBillingReferenceData()
+      .then((referenceData) => {
+        if (!cancelled) {
+          setSubscriptionSports(
+            referenceData.sports,
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSubscriptionSports([]);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const loadTrainees = useCallback(async () => {
     const currentRequestId = ++requestId.current;
 
@@ -233,6 +447,10 @@ export function TraineesPage({
   }, [trainees]);
 
   function openCreateModal(): void {
+    setSubscriptionForm(
+      createInitialSubscriptionForm(),
+    );
+
     setEditingTrainee(null);
 
     setForm({
@@ -363,9 +581,152 @@ export function TraineesPage({
           isActive: commonInput.isActive,
         };
 
-        await createTrainee(createInput);
+        if (
+          subscriptionForm.price.trim() ===
+          ''
+        ) {
+          throw new Error(
+            'اكتب قيمة الاشتراك',
+          );
+        }
 
-        setNotice('تمت إضافة المتدرب بنجاح');
+        if (
+          subscriptionForm
+            .sessionsLimit
+            .trim() === ''
+        ) {
+          throw new Error(
+            'اكتب عدد الحصص',
+          );
+        }
+
+        if (
+          !subscriptionForm.sportId
+        ) {
+          throw new Error(
+            'اختر الرياضة التي سيلعبها المتدرب',
+          );
+        }
+
+        const price = Number(
+          subscriptionForm.price,
+        );
+
+        const sessionsLimit = Number(
+          subscriptionForm.sessionsLimit,
+        );
+
+        if (
+          !Number.isFinite(price) ||
+          price < 0
+        ) {
+          throw new Error(
+            'قيمة الاشتراك غير صحيحة',
+          );
+        }
+
+        if (
+          !Number.isInteger(
+            sessionsLimit,
+          ) ||
+          sessionsLimit < 1 ||
+          sessionsLimit > 1000
+        ) {
+          throw new Error(
+            'عدد الحصص يجب أن يكون من 1 إلى 1000',
+          );
+        }
+
+        const selectedSport =
+          subscriptionSports.find(
+            (sport) =>
+              sport.id ===
+              subscriptionForm.sportId,
+          );
+
+        if (!selectedSport) {
+          throw new Error(
+            'الرياضة المختارة غير موجودة',
+          );
+        }
+
+        const durationDays =
+          calculateDurationDays(
+            subscriptionForm.startDate,
+            subscriptionForm.endDate,
+          );
+
+        const createdTrainee =
+          await createTrainee(
+            createInput,
+          );
+
+        try {
+          const createdPlan =
+            await createSubscriptionPlan({
+              academyId:
+                context.academyId,
+
+              sportId:
+                selectedSport.id,
+
+              name:
+                `اشتراك ${selectedSport.name} - ${createdTrainee.firstName} ${createdTrainee.lastName}`,
+
+              code:
+                createTraineePlanCode(
+                  createdTrainee
+                    .registrationCode,
+                ),
+
+              description:
+                `اشتراك مخصص للمتدرب ${createdTrainee.firstName} ${createdTrainee.lastName}`,
+
+              durationDays,
+              price,
+              registrationFee: 0,
+              sessionsLimit,
+              freezeDaysAllowed: 0,
+              isActive: true,
+            });
+
+          await createSubscription({
+            academyId:
+              context.academyId,
+
+            branchId,
+
+            traineeId:
+              createdTrainee.id,
+
+            planId:
+              createdPlan.id,
+
+            startDate:
+              subscriptionForm.startDate,
+
+            discountAmount: 0,
+
+            notes:
+              `الرياضة: ${selectedSport.name} | عدد الحصص: ${sessionsLimit} | تاريخ النهاية: ${subscriptionForm.endDate}`,
+          });
+        } catch (
+          subscriptionError: unknown
+        ) {
+          setNotice(
+            `تم إنشاء المتدرب، لكن تعذر إنشاء الاشتراك: ${getApiErrorMessage(subscriptionError)}`,
+          );
+
+          closeModal();
+
+          await loadTrainees();
+
+          return;
+        }
+
+        setNotice(
+          'تمت إضافة المتدرب وإنشاء الاشتراك بنجاح',
+        );
       }
 
       closeModal();
@@ -745,6 +1106,21 @@ export function TraineesPage({
                 </label>
 
                 <label>
+                  السن
+
+                  <input
+                    type="text"
+                    readOnly
+                    value={
+                      calculateTraineeAge(
+                        form.dateOfBirth,
+                      ) ?? ''
+                    }
+                    placeholder="يُحسب تلقائيًا"
+                  />
+                </label>
+
+                <label>
                   النوع
                   <select
                     value={form.gender}
@@ -829,6 +1205,150 @@ export function TraineesPage({
                     </option>
                   </select>
                 </label>
+
+                {!editingTrainee && (
+                  <>
+                    <div className="trainees-subscription-title">
+                      <strong>
+                        بيانات الاشتراك والرياضة
+                      </strong>
+
+                      <span>
+                        سيتم إنشاء الاشتراك تلقائيًا بعد حفظ المتدرب.
+                      </span>
+                    </div>
+
+                    <label>
+                      الرياضة
+
+                      <select
+                        required
+                        value={
+                          subscriptionForm.sportId
+                        }
+                        onChange={(event) => {
+                          setSubscriptionForm(
+                            (current) => ({
+                              ...current,
+                              sportId:
+                                event.target.value,
+                            }),
+                          );
+                        }}
+                      >
+                        <option value="">
+                          اختر الرياضة
+                        </option>
+
+                        {subscriptionSports.map(
+                          (sport) => (
+                            <option
+                              key={sport.id}
+                              value={sport.id}
+                            >
+                              {sport.name}
+                            </option>
+                          ),
+                        )}
+                      </select>
+                    </label>
+
+                    <label>
+                      قيمة الاشتراك
+
+                      <input
+                        required
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        value={
+                          subscriptionForm.price
+                        }
+                        placeholder="مثال: 500"
+                        onChange={(event) => {
+                          setSubscriptionForm(
+                            (current) => ({
+                              ...current,
+                              price:
+                                event.target.value,
+                            }),
+                          );
+                        }}
+                      />
+                    </label>
+
+                    <label>
+                      عدد الحصص
+
+                      <input
+                        required
+                        type="number"
+                        min={1}
+                        max={1000}
+                        step={1}
+                        value={
+                          subscriptionForm
+                            .sessionsLimit
+                        }
+                        placeholder="مثال: 12"
+                        onChange={(event) => {
+                          setSubscriptionForm(
+                            (current) => ({
+                              ...current,
+                              sessionsLimit:
+                                event.target.value,
+                            }),
+                          );
+                        }}
+                      />
+                    </label>
+
+                    <label>
+                      تاريخ بداية الاشتراك
+
+                      <input
+                        required
+                        type="date"
+                        value={
+                          subscriptionForm.startDate
+                        }
+                        onChange={(event) => {
+                          setSubscriptionForm(
+                            (current) => ({
+                              ...current,
+                              startDate:
+                                event.target.value,
+                            }),
+                          );
+                        }}
+                      />
+                    </label>
+
+                    <label>
+                      تاريخ نهاية الاشتراك
+
+                      <input
+                        required
+                        type="date"
+                        min={
+                          subscriptionForm.startDate
+                        }
+                        value={
+                          subscriptionForm.endDate
+                        }
+                        onChange={(event) => {
+                          setSubscriptionForm(
+                            (current) => ({
+                              ...current,
+                              endDate:
+                                event.target.value,
+                            }),
+                          );
+                        }}
+                      />
+                    </label>
+                  </>
+                )}
 
                 <label className="trainees-full-field">
                   ملاحظات طبية

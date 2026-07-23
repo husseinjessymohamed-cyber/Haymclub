@@ -521,3 +521,29 @@
     bottom: 16px;
   }
 }
+
+
+.trainees-subscription-title {
+  grid-column: 1 / -1;
+  margin-top: 8px;
+  padding: 15px 17px;
+  border: 1px solid #d8e1fa;
+  border-radius: 13px;
+  background: #f5f8ff;
+}
+
+.trainees-subscription-title strong,
+.trainees-subscription-title span {
+  display: block;
+}
+
+.trainees-subscription-title strong {
+  color: #2448bc;
+  font-size: 15px;
+}
+
+.trainees-subscription-title span {
+  margin-top: 5px;
+  color: #6f7a92;
+  font-size: 12px;
+}
