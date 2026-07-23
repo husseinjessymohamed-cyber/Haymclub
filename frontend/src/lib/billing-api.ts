@@ -108,6 +108,36 @@ Promise<BillingReferenceData> {
   };
 }
 
+function getLatestSubscriptionsPerTrainee(
+  subscriptions: TraineeSubscription[],
+): TraineeSubscription[] {
+  const latestByTrainee =
+    new Map<
+      string,
+      TraineeSubscription
+    >();
+
+  for (
+    const subscription of
+    subscriptions
+  ) {
+    if (
+      !latestByTrainee.has(
+        subscription.traineeId,
+      )
+    ) {
+      latestByTrainee.set(
+        subscription.traineeId,
+        subscription,
+      );
+    }
+  }
+
+  return Array.from(
+    latestByTrainee.values(),
+  );
+}
+
 export async function getSubscriptionPlans(
   filters: PlanFilters = {},
 ): Promise<SubscriptionPlan[]> {
@@ -160,8 +190,15 @@ export async function getSubscriptions(
     },
   );
 
-  return asArray<TraineeSubscription>(
-    unwrapResponse<unknown>(response.data),
+  const subscriptions =
+    asArray<TraineeSubscription>(
+      unwrapResponse<unknown>(
+        response.data,
+      ),
+    );
+
+  return getLatestSubscriptionsPerTrainee(
+    subscriptions,
   );
 }
 
