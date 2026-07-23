@@ -7,10 +7,17 @@ import {
 } from '@nestjs/common';
 
 import {
+  randomBytes,
+} from 'crypto';
+
+import * as bcrypt from 'bcrypt';
+
+import {
   InjectRepository,
 } from '@nestjs/typeorm';
 
 import {
+  DataSource,
   QueryFailedError,
   Repository,
 } from 'typeorm';
@@ -28,6 +35,7 @@ import type {
 } from '../auth/interfaces/jwt-payload.interface';
 
 import {
+  AcademyMembership,
   AcademyRole,
 } from '../memberships/entities/academy-membership.entity';
 
@@ -36,12 +44,22 @@ import {
 } from '../trainees/trainees.service';
 
 import {
+  User,
+  UserStatus,
+} from '../users/entities/user.entity';
+
+import {
   UsersService,
 } from '../users/users.service';
 
 import {
   CreatePortalLinkDto,
 } from './dto/create-portal-link.dto';
+
+import {
+  CreateTraineePortalAccountDto,
+} from './dto/create-trainee-portal-account.dto';
+
 
 import {
   FindPortalLinksQueryDto,
@@ -65,6 +83,9 @@ export class PortalService {
     private readonly linksRepository:
       Repository<PortalTraineeLink>,
 
+    private readonly dataSource:
+      DataSource,
+
     private readonly usersService:
       UsersService,
 
@@ -77,6 +98,212 @@ export class PortalService {
     private readonly billingService:
       BillingService,
   ) {}
+
+  async createTraineeAccountLink(
+    dto: CreateTraineePortalAccountDto,
+    currentUser: JwtPayload,
+  ): Promise<{
+    link: PortalTraineeLink;
+    credentials: {
+      email: string;
+      password: string;
+    };
+  }> {
+    const trainee =
+      await this.traineesService.findOne(
+        dto.traineeId,
+      );
+
+    this.assertAdminScope(
+      currentUser,
+      trainee.academyId,
+      trainee.branchId,
+    );
+
+    const existingLink =
+      await this.linksRepository.findOne({
+        where: {
+          traineeId: trainee.id,
+          relationship:
+            PortalRelationship.SELF,
+        },
+      });
+
+    if (existingLink) {
+      throw new ConflictException(
+        'هذا المتدرب لديه حساب بوابة بالفعل',
+      );
+    }
+
+    const safeRegistrationCode =
+      trainee.registrationCode
+        .trim()
+        .toLowerCase()
+        .replace(
+          /[^a-z0-9.-]/g,
+          '-',
+        )
+        .replace(
+          /-+/g,
+          '-',
+        )
+        .replace(
+          /^-+|-+$/g,
+          '',
+        ) ||
+      'trainee';
+
+    const emailToken =
+      randomBytes(4)
+        .toString('hex');
+
+    const email =
+      `trainee.${safeRegistrationCode}.${emailToken}@portal.haymclub.app`;
+
+    const password =
+      `${randomBytes(9).toString('base64url')}Aa1!`;
+
+    const passwordHash =
+      await bcrypt.hash(
+        password,
+        12,
+      );
+
+    let linkId: string;
+
+    try {
+      linkId =
+        await this.dataSource.transaction(
+          async (manager) => {
+            const linksRepository =
+              manager.getRepository(
+                PortalTraineeLink,
+              );
+
+            const duplicate =
+              await linksRepository.findOne({
+                where: {
+                  traineeId:
+                    trainee.id,
+
+                  relationship:
+                    PortalRelationship.SELF,
+                },
+              });
+
+            if (duplicate) {
+              throw new ConflictException(
+                'هذا المتدرب لديه حساب بوابة بالفعل',
+              );
+            }
+
+            const usersRepository =
+              manager.getRepository(User);
+
+            const membershipsRepository =
+              manager.getRepository(
+                AcademyMembership,
+              );
+
+            const user =
+              usersRepository.create({
+                firstName:
+                  trainee.firstName.trim(),
+
+                lastName:
+                  trainee.lastName.trim(),
+
+                email,
+
+                phone:
+                  trainee.phone?.trim() ||
+                  null,
+
+                passwordHash,
+
+                status:
+                  UserStatus.ACTIVE,
+
+                lastLoginAt:
+                  null,
+              });
+
+            const savedUser =
+              await usersRepository.save(
+                user,
+              );
+
+            const membership =
+              membershipsRepository.create({
+                userId:
+                  savedUser.id,
+
+                academyId:
+                  trainee.academyId,
+
+                branchId:
+                  trainee.branchId,
+
+                role:
+                  AcademyRole.TRAINEE,
+
+                isPrimary:
+                  true,
+
+                isActive:
+                  true,
+              });
+
+            await membershipsRepository.save(
+              membership,
+            );
+
+            const link =
+              linksRepository.create({
+                academyId:
+                  trainee.academyId,
+
+                userId:
+                  savedUser.id,
+
+                traineeId:
+                  trainee.id,
+
+                relationship:
+                  PortalRelationship.SELF,
+
+                isPrimary:
+                  true,
+
+                isActive:
+                  true,
+              });
+
+            const savedLink =
+              await linksRepository.save(
+                link,
+              );
+
+            return savedLink.id;
+          },
+        );
+    } catch (error) {
+      this.handleDatabaseError(error);
+    }
+
+    return {
+      link:
+        await this.findLink(
+          linkId,
+          currentUser,
+        ),
+
+      credentials: {
+        email,
+        password,
+      },
+    };
+  }
 
   async createLink(
     dto: CreatePortalLinkDto,

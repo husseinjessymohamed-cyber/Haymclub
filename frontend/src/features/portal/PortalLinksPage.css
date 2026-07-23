@@ -420,3 +420,124 @@
     grid-template-columns: 1fr;
   }
 }
+
+.portal-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.portal-trainee-create,
+.portal-credentials {
+  max-width: 1500px;
+  margin: 0 auto 16px;
+  padding: 18px;
+  border: 1px solid #dce3f2;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.portal-trainee-create {
+  display: grid;
+  grid-template-columns:
+    minmax(230px, 1fr)
+    minmax(280px, 2fr)
+    auto;
+  gap: 13px;
+  align-items: end;
+}
+
+.portal-trainee-create strong,
+.portal-trainee-create span {
+  display: block;
+}
+
+.portal-trainee-create span {
+  margin-top: 5px;
+  color: #74809a;
+  font-size: 12px;
+}
+
+.portal-trainee-create select {
+  min-height: 45px;
+  border: 1px solid #d8deea;
+  border-radius: 10px;
+  padding: 0 12px;
+  font: inherit;
+  background: #fff;
+}
+
+.portal-all-linked {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #17633b;
+  font-weight: 800;
+}
+
+.portal-credentials {
+  display: grid;
+  grid-template-columns:
+    minmax(200px, 1fr)
+    minmax(260px, 1.5fr)
+    minmax(260px, 1.5fr);
+  gap: 14px;
+  border-color: #bfe4ce;
+  background: #f0fbf4;
+}
+
+.portal-credentials > div strong,
+.portal-credentials > div span {
+  display: block;
+}
+
+.portal-credentials > div strong {
+  color: #17633b;
+  font-size: 16px;
+}
+
+.portal-credentials > div span {
+  margin-top: 5px;
+  color: #5e7468;
+  font-size: 12px;
+}
+
+.portal-credentials label {
+  display: grid;
+  gap: 7px;
+  color: #35443a;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.portal-credentials label > div {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 7px;
+}
+
+.portal-credentials input {
+  min-width: 0;
+  min-height: 42px;
+  border: 1px solid #bfdbc9;
+  border-radius: 9px;
+  padding: 0 10px;
+  font: inherit;
+  direction: ltr;
+  background: #fff;
+}
+
+.portal-credentials button {
+  border: 0;
+  border-radius: 9px;
+  padding: 0 13px;
+  color: #17633b;
+  font-weight: 800;
+  background: #dff4e7;
+}
+
+@media (max-width: 900px) {
+  .portal-trainee-create,
+  .portal-credentials {
+    grid-template-columns: 1fr;
+  }
+}

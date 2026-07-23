@@ -1,12 +1,21 @@
 import axios from 'axios';
 
-import { api } from './api';
-import { getTrainees } from './trainees-api';
-import { getUsers } from './users-api';
+import {
+  api,
+} from './api';
+
+import {
+  getTrainees,
+} from './trainees-api';
+
+import {
+  getUsers,
+} from './users-api';
 
 import type {
   ClientPortalResponse,
   CreatePortalLinkInput,
+  CreateTraineePortalLinkResponse,
   PortalAdminData,
   PortalLink,
   UpdatePortalLinkInput,
@@ -24,9 +33,11 @@ function unwrapResponse<T>(
     data !== null &&
     'data' in data
   ) {
-    return (data as {
-      data: T;
-    }).data;
+    return (
+      data as {
+        data: T;
+      }
+    ).data;
   }
 
   return data as T;
@@ -36,7 +47,7 @@ function asArray<T>(
   value: unknown,
 ): T[] {
   return Array.isArray(value)
-    ? (value as T[])
+    ? value as T[]
     : [];
 }
 
@@ -49,8 +60,10 @@ function hasClientRole(
       (membership) =>
         membership.isActive &&
         (
-          membership.role === 'PARENT' ||
-          membership.role === 'TRAINEE'
+          membership.role ===
+            'PARENT' ||
+          membership.role ===
+            'TRAINEE'
         ),
     )
   );
@@ -58,9 +71,8 @@ function hasClientRole(
 
 export async function getAuthenticatedProfile():
 Promise<UserProfile> {
-  const response = await api.get(
-    '/auth/me',
-  );
+  const response =
+    await api.get('/auth/me');
 
   return unwrapResponse<UserProfile>(
     response.data,
@@ -99,12 +111,29 @@ Promise<PortalAdminData> {
 export async function createPortalLink(
   input: CreatePortalLinkInput,
 ): Promise<PortalLink> {
-  const response = await api.post(
-    '/portal/links',
-    input,
-  );
+  const response =
+    await api.post(
+      '/portal/links',
+      input,
+    );
 
   return unwrapResponse<PortalLink>(
+    response.data,
+  );
+}
+
+export async function createTraineePortalLink(
+  traineeId: string,
+): Promise<CreateTraineePortalLinkResponse> {
+  const response =
+    await api.post(
+      '/portal/trainee-links',
+      {
+        traineeId,
+      },
+    );
+
+  return unwrapResponse<CreateTraineePortalLinkResponse>(
     response.data,
   );
 }
@@ -113,10 +142,11 @@ export async function updatePortalLink(
   id: string,
   input: UpdatePortalLinkInput,
 ): Promise<PortalLink> {
-  const response = await api.patch(
-    `/portal/links/${id}`,
-    input,
-  );
+  const response =
+    await api.patch(
+      `/portal/links/${id}`,
+      input,
+    );
 
   return unwrapResponse<PortalLink>(
     response.data,
@@ -133,9 +163,8 @@ export async function deletePortalLink(
 
 export async function getClientPortal():
 Promise<ClientPortalResponse> {
-  const response = await api.get(
-    '/portal/me',
-  );
+  const response =
+    await api.get('/portal/me');
 
   return unwrapResponse<ClientPortalResponse>(
     response.data,

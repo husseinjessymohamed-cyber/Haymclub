@@ -54,6 +54,16 @@ export interface PortalAdminData {
   trainees: Trainee[];
 }
 
+export interface TraineePortalCredentials {
+  email: string;
+  password: string;
+}
+
+export interface CreateTraineePortalLinkResponse {
+  link: PortalLink;
+  credentials: TraineePortalCredentials;
+}
+
 export interface PortalAttendanceSummary {
   trainee: {
     id: string;
@@ -90,7 +100,6 @@ export interface ClientPortalTrainee {
 
 export interface ClientPortalResponse {
   generatedAt: string;
-
   user: UserProfile;
 
   activeMembership: {

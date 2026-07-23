@@ -1,4 +1,5 @@
 import {
+  useEffect,
   useMemo,
   useState,
 } from 'react';
@@ -13,6 +14,7 @@ import {
 
 import {
   createPortalLink,
+  createTraineePortalLink,
   deletePortalLink,
   getPortalAdminData,
   getPortalApiError,
@@ -21,6 +23,7 @@ import {
 
 import type {
   PortalRelationship,
+  TraineePortalCredentials,
 } from '../../types/portal';
 
 import type {
@@ -114,37 +117,70 @@ export function PortalLinksPage({
   onBack,
 }: PortalLinksPageProps) {
   const query = useQuery({
-    queryKey: ['portal-admin-data'],
-    queryFn: getPortalAdminData,
-    staleTime: 20_000,
+    queryKey: [
+      'portal-admin-data',
+    ],
+
+    queryFn:
+      getPortalAdminData,
+
+    staleTime:
+      20_000,
   });
 
-  const [search, setSearch] =
-    useState('');
+  const [
+    search,
+    setSearch,
+  ] = useState('');
 
-  const [formOpen, setFormOpen] =
-    useState(false);
+  const [
+    formOpen,
+    setFormOpen,
+  ] = useState(false);
 
-  const [form, setForm] =
-    useState<PortalLinkForm>(
-      EMPTY_FORM,
+  const [
+    form,
+    setForm,
+  ] = useState(
+    EMPTY_FORM,
+  );
+
+  const [
+    selectedTraineeId,
+    setSelectedTraineeId,
+  ] = useState('');
+
+  const [
+    credentials,
+    setCredentials,
+  ] =
+    useState<TraineePortalCredentials | null>(
+      null,
     );
 
-  const [saving, setSaving] =
-    useState(false);
+  const [
+    saving,
+    setSaving,
+  ] = useState(false);
 
-  const [error, setError] =
-    useState('');
+  const [
+    error,
+    setError,
+  ] = useState('');
 
-  const [notice, setNotice] =
-    useState('');
+  const [
+    notice,
+    setNotice,
+  ] = useState('');
 
-  const data = query.data;
+  const data =
+    query.data;
 
   const selectedUser =
     data?.users.find(
       (user) =>
-        user.id === form.userId,
+        user.id ===
+        form.userId,
     );
 
   const selectedMembership =
@@ -155,30 +191,105 @@ export function PortalLinksPage({
   const selectedUserRole =
     selectedMembership?.role;
 
+  const selfLinkedTraineeIds =
+    useMemo(() => {
+      const ids =
+        new Set<string>();
+
+      for (
+        const link of
+        data?.links ?? []
+      ) {
+        const membership =
+          userMembership(
+            link.user,
+          );
+
+        if (
+          link.relationship ===
+            'SELF' &&
+          membership?.role ===
+            'TRAINEE'
+        ) {
+          ids.add(
+            link.traineeId,
+          );
+        }
+      }
+
+      return ids;
+    }, [
+      data,
+    ]);
+
+  const unlinkedTrainees =
+    useMemo(() => {
+      return (
+        data?.trainees.filter(
+          (trainee) =>
+            trainee.isActive !==
+              false &&
+            !selfLinkedTraineeIds.has(
+              trainee.id,
+            ),
+        ) ?? []
+      );
+    }, [
+      data,
+      selfLinkedTraineeIds,
+    ]);
+
+  useEffect(() => {
+    const selectionStillExists =
+      unlinkedTrainees.some(
+        (trainee) =>
+          trainee.id ===
+          selectedTraineeId,
+      );
+
+    if (
+      !selectionStillExists
+    ) {
+      setSelectedTraineeId(
+        unlinkedTrainees[0]
+          ?.id ?? '',
+      );
+    }
+  }, [
+    selectedTraineeId,
+    unlinkedTrainees,
+  ]);
+
   const availableTrainees =
     useMemo(() => {
       if (!data) {
         return [];
       }
 
-      if (!selectedMembership) {
+      if (
+        !selectedMembership
+      ) {
         return data.trainees;
       }
 
       return data.trainees.filter(
         (trainee) => {
           if (
-            selectedMembership.academyId &&
+            selectedMembership
+              .academyId &&
             trainee.academyId !==
-              selectedMembership.academyId
+              selectedMembership
+                .academyId
           ) {
             return false;
           }
 
           if (
-            selectedMembership.branchId &&
+            selectedMembership
+              .branchId &&
             trainee.branchId !==
-              selectedMembership.branchId
+              selectedMembership
+                .branchId
           ) {
             return false;
           }
@@ -209,16 +320,24 @@ export function PortalLinksPage({
       return data.links.filter(
         (link) => {
           const searchable = [
-            userName(link.user),
+            userName(
+              link.user,
+            ),
+
             link.user?.email,
+
             link.user?.phone,
+
             traineeName(
               link.trainee,
             ),
+
             link.trainee
               ?.registrationCode,
+
             link.trainee
               ?.branch?.name,
+
             link.relationship,
           ]
             .filter(Boolean)
@@ -235,7 +354,8 @@ export function PortalLinksPage({
       search,
     ]);
 
-  function openCreateForm(): void {
+  function openCreateForm():
+  void {
     const firstUser =
       data?.users[0];
 
@@ -256,7 +376,8 @@ export function PortalLinksPage({
     const firstTrainee =
       data?.trainees.find(
         (trainee) =>
-          !membership?.academyId ||
+          !membership
+            ?.academyId ||
           trainee.academyId ===
             membership.academyId,
       );
@@ -269,8 +390,12 @@ export function PortalLinksPage({
         firstTrainee?.id ?? '',
 
       relationship,
-      isPrimary: true,
-      isActive: true,
+
+      isPrimary:
+        true,
+
+      isActive:
+        true,
     });
 
     setFormOpen(true);
@@ -303,12 +428,14 @@ export function PortalLinksPage({
       data?.trainees.find(
         (item) =>
           (
-            !membership?.academyId ||
+            !membership
+              ?.academyId ||
             item.academyId ===
               membership.academyId
           ) &&
           (
-            !membership?.branchId ||
+            !membership
+              ?.branchId ||
             item.branchId ===
               membership.branchId
           ),
@@ -319,10 +446,56 @@ export function PortalLinksPage({
         ...current,
         userId,
         relationship,
+
         traineeId:
           trainee?.id ?? '',
       }),
     );
+  }
+
+  async function createSelectedTraineeLink():
+  Promise<void> {
+    if (
+      !selectedTraineeId
+    ) {
+      setError(
+        'اختر المتدرب أولًا',
+      );
+
+      return;
+    }
+
+    setSaving(true);
+    setError('');
+    setNotice('');
+    setCredentials(null);
+
+    try {
+      const result =
+        await createTraineePortalLink(
+          selectedTraineeId,
+        );
+
+      setCredentials(
+        result.credentials,
+      );
+
+      setNotice(
+        'تم إنشاء حساب المتدرب وربطه بالبوابة بنجاح',
+      );
+
+      await query.refetch();
+    } catch (
+      createError: unknown
+    ) {
+      setError(
+        getPortalApiError(
+          createError,
+        ),
+      );
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function submitForm(
@@ -338,6 +511,7 @@ export function PortalLinksPage({
       setError(
         'يجب اختيار الحساب والمتدرب',
       );
+
       return;
     }
 
@@ -347,24 +521,32 @@ export function PortalLinksPage({
 
     try {
       await createPortalLink({
-        userId: form.userId,
+        userId:
+          form.userId,
+
         traineeId:
           form.traineeId,
+
         relationship:
           form.relationship,
+
         isPrimary:
           form.isPrimary,
+
         isActive:
           form.isActive,
       });
 
       setFormOpen(false);
+
       setNotice(
         'تم ربط الحساب بالمتدرب بنجاح',
       );
 
       await query.refetch();
-    } catch (submitError) {
+    } catch (
+      submitError: unknown
+    ) {
       setError(
         getPortalApiError(
           submitError,
@@ -399,7 +581,9 @@ export function PortalLinksPage({
       );
 
       await query.refetch();
-    } catch (updateError) {
+    } catch (
+      updateError: unknown
+    ) {
       setError(
         getPortalApiError(
           updateError,
@@ -420,7 +604,8 @@ export function PortalLinksPage({
       await updatePortalLink(
         id,
         {
-          isPrimary: true,
+          isPrimary:
+            true,
         },
       );
 
@@ -429,7 +614,9 @@ export function PortalLinksPage({
       );
 
       await query.refetch();
-    } catch (updateError) {
+    } catch (
+      updateError: unknown
+    ) {
       setError(
         getPortalApiError(
           updateError,
@@ -458,14 +645,18 @@ export function PortalLinksPage({
     setNotice('');
 
     try {
-      await deletePortalLink(id);
+      await deletePortalLink(
+        id,
+      );
 
       setNotice(
         'تم حذف الرابط',
       );
 
       await query.refetch();
-    } catch (deleteError) {
+    } catch (
+      deleteError: unknown
+    ) {
       setError(
         getPortalApiError(
           deleteError,
@@ -476,13 +667,28 @@ export function PortalLinksPage({
     }
   }
 
+  async function copyValue(
+    value: string,
+  ): Promise<void> {
+    try {
+      await navigator.clipboard
+        .writeText(value);
+
+      setNotice(
+        'تم نسخ البيانات',
+      );
+    } catch {
+      setError(
+        'تعذر النسخ تلقائيًا',
+      );
+    }
+  }
+
   if (query.isPending) {
     return (
-      <main
-        className="portal-admin-state"
-        dir="rtl"
-      >
+      <main className="portal-admin-state">
         <div className="portal-admin-loader" />
+
         <h1>
           جارٍ تحميل بوابة العملاء
         </h1>
@@ -495,10 +701,7 @@ export function PortalLinksPage({
     !data
   ) {
     return (
-      <main
-        className="portal-admin-state"
-        dir="rtl"
-      >
+      <main className="portal-admin-state">
         <h1>
           تعذر تحميل روابط البوابة
         </h1>
@@ -545,42 +748,196 @@ export function PortalLinksPage({
           </h1>
 
           <p>
-            اربط حساب ولي الأمر أو
-            المتدرب بالسجل الصحيح داخل
-            الأكاديمية.
+            اختر المتدرب ثم أنشئ حساب
+            البوابة والرابط بضغطة واحدة.
           </p>
         </div>
+
+        <div className="portal-header-actions">
+          <button
+            type="button"
+            className="portal-links-secondary"
+            onClick={openCreateForm}
+            disabled={saving}
+          >
+            ربط ولي أمر موجود
+          </button>
+
+          <button
+            type="button"
+            className="portal-links-primary"
+            disabled={
+              saving ||
+              !selectedTraineeId
+            }
+            onClick={() =>
+              void createSelectedTraineeLink()
+            }
+          >
+            ＋ إنشاء رابط جديد
+          </button>
+        </div>
+      </header>
+
+      <section className="portal-trainee-create">
+        <div>
+          <strong>
+            المتدربون بدون حساب بوابة
+          </strong>
+
+          <span>
+            أي متدرب جديد سيظهر تلقائيًا
+            في هذه القائمة.
+          </span>
+        </div>
+
+        <select
+          value={
+            selectedTraineeId
+          }
+          disabled={
+            saving ||
+            unlinkedTrainees.length ===
+              0
+          }
+          onChange={(event) =>
+            setSelectedTraineeId(
+              event.target.value,
+            )
+          }
+        >
+          <option value="">
+            اختر المتدرب
+          </option>
+
+          {unlinkedTrainees.map(
+            (trainee) => (
+              <option
+                key={trainee.id}
+                value={trainee.id}
+              >
+                {traineeName(
+                  trainee,
+                )}
+                {' — '}
+                {trainee.registrationCode}
+                {' — '}
+                {trainee.branch?.name ??
+                  'الفرع الرئيسي'}
+              </option>
+            ),
+          )}
+        </select>
 
         <button
           type="button"
           className="portal-links-primary"
           disabled={
-            data.users.length === 0 ||
-            data.trainees.length === 0
+            saving ||
+            !selectedTraineeId
           }
-          onClick={openCreateForm}
+          onClick={() =>
+            void createSelectedTraineeLink()
+          }
         >
-          ＋ إنشاء رابط جديد
+          {saving
+            ? 'جارٍ الإنشاء...'
+            : 'إنشاء رابط المتدرب'}
         </button>
-      </header>
+
+        {unlinkedTrainees.length ===
+          0 && (
+          <p className="portal-all-linked">
+            جميع المتدربين لديهم حسابات
+            بوابة.
+          </p>
+        )}
+      </section>
+
+      {credentials && (
+        <section className="portal-credentials">
+          <div>
+            <strong>
+              بيانات دخول المتدرب
+            </strong>
+
+            <span>
+              احفظها الآن؛ كلمة المرور
+              تظهر بعد الإنشاء فقط.
+            </span>
+          </div>
+
+          <label>
+            البريد الإلكتروني
+
+            <div>
+              <input
+                readOnly
+                value={
+                  credentials.email
+                }
+              />
+
+              <button
+                type="button"
+                onClick={() =>
+                  void copyValue(
+                    credentials.email,
+                  )
+                }
+              >
+                نسخ
+              </button>
+            </div>
+          </label>
+
+          <label>
+            كلمة المرور المؤقتة
+
+            <div>
+              <input
+                readOnly
+                value={
+                  credentials.password
+                }
+              />
+
+              <button
+                type="button"
+                onClick={() =>
+                  void copyValue(
+                    credentials.password,
+                  )
+                }
+              >
+                نسخ
+              </button>
+            </div>
+          </label>
+        </section>
+      )}
 
       <section className="portal-links-stats">
         <article>
-          <span>إجمالي الروابط</span>
+          <span>
+            إجمالي الروابط
+          </span>
+
           <strong>
             {data.links.length}
           </strong>
         </article>
 
         <article>
-          <span>الروابط النشطة</span>
+          <span>
+            الروابط النشطة
+          </span>
+
           <strong>
-            {
-              data.links.filter(
-                (link) =>
-                  link.isActive,
-              ).length
-            }
+            {data.links.filter(
+              (link) =>
+                link.isActive,
+            ).length}
           </strong>
         </article>
 
@@ -588,35 +945,31 @@ export function PortalLinksPage({
           <span>
             حسابات أولياء الأمور
           </span>
+
           <strong>
-            {
-              data.users.filter(
-                (user) =>
-                  userMembership(user)
-                    ?.role ===
-                  'PARENT',
-              ).length
-            }
+            {data.users.filter(
+              (user) =>
+                userMembership(
+                  user,
+                )?.role ===
+                'PARENT',
+            ).length}
           </strong>
         </article>
 
         <article>
-          <span>حسابات المتدربين</span>
+          <span>
+            متدربون بدون رابط
+          </span>
+
           <strong>
-            {
-              data.users.filter(
-                (user) =>
-                  userMembership(user)
-                    ?.role ===
-                  'TRAINEE',
-              ).length
-            }
+            {unlinkedTrainees.length}
           </strong>
         </article>
       </section>
 
       {(error || notice) && (
-        <div
+        <section
           className={
             error
               ? 'portal-links-message portal-links-error'
@@ -624,15 +977,7 @@ export function PortalLinksPage({
           }
         >
           {error || notice}
-        </div>
-      )}
-
-      {data.users.length === 0 && (
-        <div className="portal-links-warning">
-          لا توجد حسابات بصلاحية ولي
-          أمر أو متدرب. أنشئ الحساب
-          أولًا من شاشة المستخدمين.
-        </div>
+        </section>
       )}
 
       <section className="portal-links-toolbar">
@@ -649,7 +994,6 @@ export function PortalLinksPage({
 
         <button
           type="button"
-          disabled={query.isFetching}
           onClick={() =>
             void query.refetch()
           }
@@ -662,27 +1006,16 @@ export function PortalLinksPage({
 
       {visibleLinks.length === 0 ? (
         <section className="portal-links-empty">
-          <div>👨‍👩‍👦</div>
+          <div>👨‍👩‍👧</div>
 
           <h2>
             لا توجد روابط
           </h2>
 
           <p>
-            ابدأ بربط حساب ولي الأمر
-            أو المتدرب بسجل المتدرب.
+            اختر متدربًا من القائمة
+            واضغط إنشاء رابط جديد.
           </p>
-
-          {data.users.length > 0 &&
-            data.trainees.length > 0 && (
-              <button
-                type="button"
-                className="portal-links-primary"
-                onClick={openCreateForm}
-              >
-                إنشاء أول رابط
-              </button>
-            )}
         </section>
       ) : (
         <section className="portal-links-table-wrapper">
@@ -725,14 +1058,13 @@ export function PortalLinksPage({
 
                       <td>
                         <span className="portal-role-badge">
-                          {
-                            ROLE_LABELS[
-                              membership
-                                ?.role ??
+                          {ROLE_LABELS[
+                            membership
+                              ?.role ??
                               'PARENT'
-                            ] ??
-                            membership?.role
-                          }
+                          ] ??
+                            membership
+                              ?.role}
                         </span>
                       </td>
 
@@ -752,7 +1084,8 @@ export function PortalLinksPage({
 
                       <td>
                         {link.trainee
-                          ?.branch?.name ??
+                          ?.branch
+                          ?.name ??
                           '—'}
                       </td>
 
@@ -804,9 +1137,7 @@ export function PortalLinksPage({
 
                           <button
                             type="button"
-                            disabled={
-                              saving
-                            }
+                            disabled={saving}
                             onClick={() =>
                               void toggleActive(
                                 link.id,
@@ -822,9 +1153,7 @@ export function PortalLinksPage({
                           <button
                             type="button"
                             className="danger"
-                            disabled={
-                              saving
-                            }
+                            disabled={saving}
                             onClick={() =>
                               void removeLink(
                                 link.id,
@@ -850,22 +1179,30 @@ export function PortalLinksPage({
       {formOpen && (
         <div
           className="portal-links-overlay"
+          role="presentation"
           onMouseDown={(event) => {
             if (
               event.target ===
-              event.currentTarget &&
+                event.currentTarget &&
               !saving
             ) {
               setFormOpen(false);
             }
           }}
         >
-          <section className="portal-links-modal">
+          <section
+            className="portal-links-modal"
+            role="dialog"
+            aria-modal="true"
+          >
             <header>
               <div>
-                <p>بوابة العملاء</p>
+                <p>
+                  بوابة العملاء
+                </p>
+
                 <h2>
-                  ربط حساب بمتدرب
+                  ربط حساب موجود بمتدرب
                 </h2>
               </div>
 
@@ -880,13 +1217,19 @@ export function PortalLinksPage({
               </button>
             </header>
 
-            <form onSubmit={submitForm}>
+            <form
+              onSubmit={
+                submitForm
+              }
+            >
               <label>
                 حساب المستخدم
 
                 <select
                   required
-                  value={form.userId}
+                  value={
+                    form.userId
+                  }
                   onChange={(event) =>
                     handleUserChange(
                       event.target.value,
@@ -911,13 +1254,11 @@ export function PortalLinksPage({
                         >
                           {userName(user)}
                           {' — '}
-                          {
-                            ROLE_LABELS[
-                              membership
-                                ?.role ??
+                          {ROLE_LABELS[
+                            membership
+                              ?.role ??
                               'PARENT'
-                            ]
-                          }
+                          ]}
                         </option>
                       );
                     },
@@ -937,6 +1278,7 @@ export function PortalLinksPage({
                     setForm(
                       (current) => ({
                         ...current,
+
                         traineeId:
                           event.target
                             .value,
@@ -982,10 +1324,10 @@ export function PortalLinksPage({
                     setForm(
                       (current) => ({
                         ...current,
+
                         relationship:
                           event.target
-                            .value as
-                            PortalRelationship,
+                            .value as PortalRelationship,
                       }),
                     )
                   }
@@ -1019,6 +1361,7 @@ export function PortalLinksPage({
                     setForm(
                       (current) => ({
                         ...current,
+
                         isPrimary:
                           event.target
                             .checked,
@@ -1027,7 +1370,7 @@ export function PortalLinksPage({
                   }
                 />
 
-                المتدرب الأساسي لهذا الحساب
+                الرابط الأساسي لهذا الحساب
               </label>
 
               <label className="portal-checkbox">
@@ -1040,6 +1383,7 @@ export function PortalLinksPage({
                     setForm(
                       (current) => ({
                         ...current,
+
                         isActive:
                           event.target
                             .checked,

@@ -33,6 +33,11 @@ import {
 } from './dto/create-portal-link.dto';
 
 import {
+  CreateTraineePortalAccountDto,
+} from './dto/create-trainee-portal-account.dto';
+
+
+import {
   FindPortalLinksQueryDto,
 } from './dto/find-portal-links-query.dto';
 
@@ -62,6 +67,26 @@ export class PortalController {
   ) {
     return this.portalService
       .getMyPortal(currentUser);
+  }
+
+  @Post('trainee-links')
+  @Roles(
+    AcademyRole.SUPER_ADMIN,
+    AcademyRole.ACADEMY_ADMIN,
+    AcademyRole.BRANCH_MANAGER,
+  )
+  createTraineeAccountLink(
+    @Body()
+    dto: CreateTraineePortalAccountDto,
+
+    @CurrentUser()
+    currentUser: JwtPayload,
+  ) {
+    return this.portalService
+      .createTraineeAccountLink(
+        dto,
+        currentUser,
+      );
   }
 
   @Post('links')
