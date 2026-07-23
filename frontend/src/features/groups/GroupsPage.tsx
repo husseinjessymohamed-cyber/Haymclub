@@ -1,17 +1,16 @@
 import {
-  createTrainingProgram,
   useCallback,
   useEffect,
   useMemo,
   useState,
 } from 'react';
 
-import type {
-  SportOption, FormEvent } from 'react';
+import type { FormEvent } from 'react';
 
 import {
   addTrainingGroupSchedule,
   createTrainingGroup,
+  createTrainingProgram,
   deleteTrainingGroup,
   deleteTrainingGroupSchedule,
   getGroupOptions,
@@ -23,6 +22,7 @@ import {
 import type {
   BranchOption,
   CoachOption,
+  SportOption,
   CreateScheduleInput,
   TrainingDay,
   TrainingGroup,
