@@ -32,6 +32,10 @@ import {
 
 
 
+import {
+  ClientTrainingSchedulePanel,
+} from './ClientTrainingSchedulePanel';
+
 import { ClientFeedbackPanel } from '../workflow/ClientFeedbackPanel';
 import './ClientPortalPage.css';
 
@@ -588,10 +592,24 @@ export function ClientPortalPage({
             </div>
           </section>
 
-          {/* HAYMCLUB_CLIENT_NOTIFICATIONS_PANEL */}
+                    <ClientTrainingSchedulePanel
+            traineeId={
+              selected.trainee.id
+            }
+          />
+
+{/* HAYMCLUB_CLIENT_NOTIFICATIONS_PANEL */}
           <ClientNotificationsPanel />
 
-          <ClientFeedbackPanel />
+          <ClientFeedbackPanel
+            traineeId={
+              selected.trainee.id
+            }
+
+            traineeName={
+              `${selected.trainee.firstName} ${selected.trainee.lastName}`.trim()
+            }
+          />
 
 
           <ClientGalleryPanel />

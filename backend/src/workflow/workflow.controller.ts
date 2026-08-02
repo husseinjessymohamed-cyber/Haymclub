@@ -1,25 +1,50 @@
 import {
+  BadRequestException,
   Body,
   Controller,
+  ForbiddenException,
   Get,
+  NotFoundException,
   Param,
   Patch,
   Post,
   Query,
+  Res,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 
-import {
-  CurrentUser,
-} from '../auth/decorators/current-user.decorator';
-import {
-  Roles,
-} from '../auth/decorators/roles.decorator';
-import {
-  AcademyRole,
-} from '../memberships/entities/academy-membership.entity';
-import {
-  WorkflowService,
-} from './workflow.service';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { AcademyRole } from '../memberships/entities/academy-membership.entity';
+
+import { FileInterceptor } from '@nestjs/platform-express';
+
+import { diskStorage } from 'multer';
+
+import { createReadStream, existsSync, mkdirSync, unlinkSync } from 'node:fs';
+
+import { basename, resolve } from 'node:path';
+
+import { randomUUID } from 'node:crypto';
+
+import type { Response } from 'express';
+
+import { DataSource } from 'typeorm';
+import { WorkflowService } from './workflow.service';
+
+// HAYMCLUB_WORKFLOW_IMAGE_UPLOAD
+const WORKFLOW_ATTACHMENTS_DIRECTORY = resolve(
+  process.cwd(),
+  'storage',
+  'workflow-feedback',
+);
+
+const WORKFLOW_IMAGE_EXTENSIONS: Record<string, string> = {
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+  'image/webp': '.webp',
+};
 
 const ADMIN_ROLES = [
   AcademyRole.SUPER_ADMIN,
@@ -30,17 +55,14 @@ const ADMIN_ROLES = [
   AcademyRole.COACH,
 ];
 
-const ALL_ROLES = [
-  ...ADMIN_ROLES,
-  AcademyRole.PARENT,
-  AcademyRole.TRAINEE,
-];
+const ALL_ROLES = [...ADMIN_ROLES, AcademyRole.PARENT, AcademyRole.TRAINEE];
 
 @Controller('workflow')
 export class WorkflowController {
   constructor(
-    private readonly workflowService:
-      WorkflowService,
+    private readonly workflowService: WorkflowService,
+
+    private readonly dataSource: DataSource,
   ) {}
 
   private currentUser(
@@ -72,12 +94,7 @@ export class WorkflowController {
     status?: string,
   ) {
     return this.workflowService.listTasks(
-      this.currentUser(
-        userId,
-        academyId,
-        branchId,
-        role,
-      ),
+      this.currentUser(userId, academyId, branchId, role),
       status,
     );
   }
@@ -95,12 +112,7 @@ export class WorkflowController {
     role: AcademyRole,
   ) {
     return this.workflowService.syncTasks(
-      this.currentUser(
-        userId,
-        academyId,
-        branchId,
-        role,
-      ),
+      this.currentUser(userId, academyId, branchId, role),
     );
   }
 
@@ -144,12 +156,7 @@ export class WorkflowController {
     },
   ) {
     return this.workflowService.createTask(
-      this.currentUser(
-        userId,
-        academyId,
-        branchId,
-        role,
-      ),
+      this.currentUser(userId, academyId, branchId, role),
       body,
     );
   }
@@ -173,18 +180,12 @@ export class WorkflowController {
       failureReason?: string | null;
     },
   ) {
-    return this.workflowService
-      .updateTaskStatus(
-        this.currentUser(
-          userId,
-          academyId,
-          branchId,
-          role,
-        ),
-        taskId,
-        body.status,
-        body.failureReason,
-      );
+    return this.workflowService.updateTaskStatus(
+      this.currentUser(userId, academyId, branchId, role),
+      taskId,
+      body.status,
+      body.failureReason,
+    );
   }
 
   @Post('tasks/:id/escalate')
@@ -206,15 +207,147 @@ export class WorkflowController {
     },
   ) {
     return this.workflowService.escalateTask(
-      this.currentUser(
-        userId,
-        academyId,
-        branchId,
-        role,
-      ),
+      this.currentUser(userId, academyId, branchId, role),
       taskId,
       body.reason,
     );
+  }
+
+  @Post('feedback/upload')
+  @Roles(...ALL_ROLES)
+  @UseInterceptors(
+    FileInterceptor('attachment', {
+      storage: diskStorage({
+        destination: (_request, _file, callback) => {
+          mkdirSync(WORKFLOW_ATTACHMENTS_DIRECTORY, {
+            recursive: true,
+          });
+
+          callback(null, WORKFLOW_ATTACHMENTS_DIRECTORY);
+        },
+
+        filename: (_request, file, callback) => {
+          const extension = WORKFLOW_IMAGE_EXTENSIONS[file.mimetype] ?? '';
+
+          callback(null, `${randomUUID()}${extension}`);
+        },
+      }),
+
+      limits: {
+        fileSize: 5 * 1024 * 1024,
+      },
+
+      fileFilter: (_request, file, callback) => {
+        if (WORKFLOW_IMAGE_EXTENSIONS[file.mimetype]) {
+          callback(null, true);
+          return;
+        }
+
+        callback(
+          new BadRequestException('يسمح برفع صور JPG أو PNG أو WEBP فقط.'),
+          false,
+        );
+      },
+    }),
+  )
+  async submitFeedbackWithImage(
+    @CurrentUser('sub')
+    userId: string,
+
+    @CurrentUser('academyId')
+    academyId: string | null,
+
+    @CurrentUser('branchId')
+    branchId: string | null,
+
+    @CurrentUser('role')
+    role: AcademyRole,
+
+    @Body()
+    body: {
+      type?: string;
+      subject?: string;
+      message: string;
+      entityType?: string | null;
+      entityId?: string | null;
+      metadata?: string;
+    },
+
+    @UploadedFile()
+    file?: Express.Multer.File,
+  ) {
+    let metadata: Record<string, unknown> = {};
+
+    if (body.metadata?.trim()) {
+      try {
+        const parsed = JSON.parse(body.metadata);
+
+        if (
+          typeof parsed !== 'object' ||
+          parsed === null ||
+          Array.isArray(parsed)
+        ) {
+          throw new Error('Metadata must be an object');
+        }
+
+        metadata = parsed as Record<string, unknown>;
+      } catch {
+        if (file?.path) {
+          try {
+            unlinkSync(file.path);
+          } catch {
+            // Ignore cleanup errors.
+          }
+        }
+
+        throw new BadRequestException('بيانات الطلب المرفقة غير صحيحة.');
+      }
+    }
+
+    if (file) {
+      metadata = {
+        ...metadata,
+
+        attachment: {
+          fileName: file.filename,
+
+          originalName: file.originalname,
+
+          mimeType: file.mimetype,
+
+          size: file.size,
+        },
+      };
+    }
+
+    try {
+      return await this.workflowService.submitFeedback(
+        this.currentUser(userId, academyId, branchId, role),
+        {
+          type: body.type,
+
+          subject: body.subject,
+
+          message: body.message,
+
+          entityType: body.entityType,
+
+          entityId: body.entityId,
+
+          metadata,
+        },
+      );
+    } catch (error) {
+      if (file?.path) {
+        try {
+          unlinkSync(file.path);
+        } catch {
+          // Ignore cleanup errors.
+        }
+      }
+
+      throw error;
+    }
   }
 
   @Post('feedback')
@@ -239,14 +372,229 @@ export class WorkflowController {
     },
   ) {
     return this.workflowService.submitFeedback(
-      this.currentUser(
-        userId,
-        academyId,
-        branchId,
-        role,
-      ),
+      this.currentUser(userId, academyId, branchId, role),
       body,
     );
+  }
+
+  @Get('feedback/admin')
+  @Roles(...ADMIN_ROLES)
+  async listAcademyFeedback(
+    @CurrentUser('academyId')
+    academyId: string | null,
+
+    @CurrentUser('branchId')
+    branchId: string | null,
+
+    @CurrentUser('role')
+    role: AcademyRole,
+  ) {
+    const academyFilter = role === AcademyRole.SUPER_ADMIN ? null : academyId;
+
+    if (role !== AcademyRole.SUPER_ADMIN && !academyFilter) {
+      return [];
+    }
+
+    const branchRestricted =
+      role === AcademyRole.BRANCH_MANAGER ||
+      role === AcademyRole.RECEPTIONIST ||
+      role === AcademyRole.COACH;
+
+    const branchFilter = branchRestricted ? branchId : null;
+
+    return this.dataSource.query(
+      `
+        SELECT
+          feedback.*,
+
+          CONCAT_WS(
+            ' ',
+            creator.first_name,
+            creator.last_name
+          ) AS creator_name,
+
+          creator.email
+            AS creator_email,
+
+          branch.name
+            AS branch_name
+
+        FROM workflow_feedback
+          AS feedback
+
+        LEFT JOIN users
+          AS creator
+          ON creator.id =
+            feedback.created_by
+
+        LEFT JOIN branches
+          AS branch
+          ON branch.id =
+            feedback.branch_id
+
+        WHERE
+          (
+            $1::uuid IS NULL
+            OR feedback.academy_id =
+              $1
+          )
+
+          AND (
+            $2::uuid IS NULL
+            OR feedback.branch_id =
+              $2
+          )
+
+        ORDER BY
+          CASE
+            WHEN feedback.status =
+              'OPEN'
+            THEN 1
+
+            WHEN feedback.status =
+              'RESOLVED'
+            THEN 2
+
+            ELSE 3
+          END,
+
+          feedback.created_at DESC
+      `,
+      [academyFilter, branchFilter],
+    );
+  }
+
+  @Get('feedback/:id/attachment')
+  @Roles(...ALL_ROLES)
+  async streamFeedbackAttachment(
+    @CurrentUser('sub')
+    userId: string,
+
+    @CurrentUser('academyId')
+    academyId: string | null,
+
+    @CurrentUser('branchId')
+    branchId: string | null,
+
+    @CurrentUser('role')
+    role: AcademyRole,
+
+    @Param('id')
+    feedbackId: string,
+
+    @Res()
+    response: Response,
+  ): Promise<void> {
+    const rows = (await this.dataSource.query(
+      `
+          SELECT
+            id,
+            academy_id,
+            branch_id,
+            created_by,
+            metadata
+
+          FROM workflow_feedback
+
+          WHERE id = $1
+
+          LIMIT 1
+        `,
+      [feedbackId],
+    )) as Array<{
+      id: string;
+      academy_id: string | null;
+      branch_id: string | null;
+      created_by: string;
+      metadata: Record<string, unknown> | string | null;
+    }>;
+
+    const feedback = rows[0];
+
+    if (!feedback) {
+      throw new NotFoundException('الطلب غير موجود.');
+    }
+
+    const clientRole =
+      role === AcademyRole.PARENT || role === AcademyRole.TRAINEE;
+
+    if (clientRole && feedback.created_by !== userId) {
+      throw new ForbiddenException('لا يمكنك فتح هذا المرفق.');
+    }
+
+    if (
+      !clientRole &&
+      role !== AcademyRole.SUPER_ADMIN &&
+      feedback.academy_id !== academyId
+    ) {
+      throw new ForbiddenException('لا يمكنك فتح هذا المرفق.');
+    }
+
+    const branchRestricted =
+      role === AcademyRole.BRANCH_MANAGER ||
+      role === AcademyRole.RECEPTIONIST ||
+      role === AcademyRole.COACH;
+
+    if (branchRestricted && branchId && feedback.branch_id !== branchId) {
+      throw new ForbiddenException('لا يمكنك فتح مرفق فرع آخر.');
+    }
+
+    let metadata = feedback.metadata;
+
+    if (typeof metadata === 'string') {
+      try {
+        metadata = JSON.parse(metadata);
+      } catch {
+        metadata = null;
+      }
+    }
+
+    const attachment =
+      metadata && typeof metadata === 'object'
+        ? (
+            metadata as {
+              attachment?: {
+                fileName?: unknown;
+                originalName?: unknown;
+                mimeType?: unknown;
+              };
+            }
+          ).attachment
+        : undefined;
+
+    const fileName =
+      typeof attachment?.fileName === 'string' ? attachment.fileName : '';
+
+    if (!fileName || basename(fileName) !== fileName) {
+      throw new NotFoundException('لا توجد صورة مرفقة بهذا الطلب.');
+    }
+
+    const filePath = resolve(WORKFLOW_ATTACHMENTS_DIRECTORY, fileName);
+
+    if (!existsSync(filePath)) {
+      throw new NotFoundException('ملف الصورة غير موجود.');
+    }
+
+    const mimeType =
+      typeof attachment?.mimeType === 'string'
+        ? attachment.mimeType
+        : 'application/octet-stream';
+
+    const originalName =
+      typeof attachment?.originalName === 'string'
+        ? attachment.originalName
+        : fileName;
+
+    response.setHeader('Content-Type', mimeType);
+
+    response.setHeader(
+      'Content-Disposition',
+      `inline; filename*=UTF-8''${encodeURIComponent(originalName)}`,
+    );
+
+    response.setHeader('Cache-Control', 'private, max-age=300');
+
+    createReadStream(filePath).pipe(response);
   }
 
   @Get('my-feedback')
@@ -261,15 +609,9 @@ export class WorkflowController {
     @CurrentUser('role')
     role: AcademyRole,
   ) {
-    return this.workflowService
-      .listMyFeedback(
-        this.currentUser(
-          userId,
-          academyId,
-          branchId,
-          role,
-        ),
-      );
+    return this.workflowService.listMyFeedback(
+      this.currentUser(userId, academyId, branchId, role),
+    );
   }
 
   @Patch('feedback/:id/resolve')
@@ -290,16 +632,10 @@ export class WorkflowController {
       response: string;
     },
   ) {
-    return this.workflowService
-      .resolveFeedback(
-        this.currentUser(
-          userId,
-          academyId,
-          branchId,
-          role,
-        ),
-        feedbackId,
-        body.response,
-      );
+    return this.workflowService.resolveFeedback(
+      this.currentUser(userId, academyId, branchId, role),
+      feedbackId,
+      body.response,
+    );
   }
 }

@@ -36,10 +36,26 @@ export interface WorkflowTask {
   updated_at: string;
 }
 
+export interface WorkflowAttachmentMetadata {
+  fileName?: string;
+  originalName?: string;
+  mimeType?: string;
+  size?: number;
+}
+
+export interface WorkflowFeedbackMetadata {
+  traineeId?: string;
+  traineeName?: string;
+  attachment?: WorkflowAttachmentMetadata;
+
+  [key: string]: unknown;
+}
+
 export interface WorkflowFeedback {
   id: string;
   academy_id: string | null;
   branch_id: string | null;
+  created_by?: string;
   feedback_type: string;
   subject: string;
   message: string;
@@ -47,6 +63,10 @@ export interface WorkflowFeedback {
   admin_response: string | null;
   task_status?: WorkflowStatus | null;
   task_title?: string | null;
+  creator_name?: string | null;
+  creator_email?: string | null;
+  branch_name?: string | null;
+  metadata?: WorkflowFeedbackMetadata | null;
   created_at: string;
   resolved_at: string | null;
 }

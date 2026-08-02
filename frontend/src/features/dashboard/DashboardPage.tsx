@@ -159,6 +159,18 @@ NavigationItem[] = [
     ],
   },
   {
+    label: 'طلبات العملاء',
+    icon: '📝',
+    route: 'academy-requests',
+    roles: [
+      'SUPER_ADMIN',
+      'ACADEMY_ADMIN',
+      'BRANCH_MANAGER',
+      'RECEPTIONIST',
+      'ACCOUNTANT',
+    ],
+  },
+  {
     label: 'بوابة العملاء',
     icon: '👨‍👩‍👦',
     route: 'portal-links',

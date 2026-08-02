@@ -23,6 +23,7 @@ import { AttendancePage } from "./features/attendance/AttendancePage";
 import { BillingPage } from "./features/billing/BillingPage";
 import { GroupsPage } from "./features/groups/GroupsPage";
 import { PortalLinksPage } from "./features/portal/PortalLinksPage";
+import { AcademyRequestsPage } from "./features/workflow/AcademyRequestsPage";
 import { ReportsPage } from "./features/reports/ReportsPage";
 import { SettingsPage } from "./features/settings/SettingsPage";
 import { TraineesPage } from "./features/trainees/TraineesPage";
@@ -80,6 +81,14 @@ function AcademyRootApplication() {
 
   if (route === "billing") {
     return <BillingPage onBack={backToDashboard} />;
+  }
+
+  if (route === "academy-requests") {
+    return (
+      <AcademyRequestsPage
+        onBack={backToDashboard}
+      />
+    );
   }
 
   if (route === "portal-links") {

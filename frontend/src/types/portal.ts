@@ -85,6 +85,25 @@ export interface PortalAttendanceSummary {
   };
 }
 
+
+export interface ClientTrainingSession {
+  id: string;
+  sessionDate: string;
+  startTime: string;
+  endTime: string;
+  venueName: string | null;
+  notes: string | null;
+  status: string;
+  isActive: boolean;
+  groupId: string;
+  groupName: string | null;
+  branchId: string;
+  branchName: string | null;
+  coachName: string | null;
+  programName: string | null;
+  sportName: string | null;
+}
+
 export interface ClientPortalTrainee {
   link: {
     id: string;

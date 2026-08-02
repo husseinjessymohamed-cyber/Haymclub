@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useRef,
   useState,
 } from 'react';
 
@@ -10,18 +11,38 @@ import type {
 import {
   getMyWorkflowFeedback,
   getWorkflowApiError,
-  submitWorkflowFeedback,
+  submitWorkflowFeedbackWithFile,
 } from '../../lib/workflow-api';
 
 import type {
   WorkflowFeedback,
 } from '../../types/workflow';
 
+import {
+  WorkflowAttachmentPreview,
+} from './WorkflowAttachmentPreview';
+
+interface ClientFeedbackPanelProps {
+  traineeId?: string;
+  traineeName?: string;
+}
+
 const FEEDBACK_STATUS_LABELS:
 Record<string, string> = {
   OPEN: 'قيد المراجعة',
   RESOLVED: 'تم الحل',
   CLOSED: 'مغلقة',
+};
+
+const FEEDBACK_TYPE_LABELS:
+Record<string, string> = {
+  GENERAL: 'ملاحظة عامة',
+  PAYMENT_RECEIPT: 'إيصال دفع',
+  ATTENDANCE: 'اعتراض على الحضور',
+  PAYMENT: 'مشكلة اشتراك أو دفع',
+  SCHEDULE: 'مشكلة في المواعيد',
+  ACCOUNT: 'مشكلة في الحساب',
+  GROUP: 'طلب تغيير المجموعة',
 };
 
 function formatDate(
@@ -42,7 +63,10 @@ function formatDate(
   ).format(date);
 }
 
-export function ClientFeedbackPanel() {
+export function ClientFeedbackPanel({
+  traineeId,
+  traineeName,
+}: ClientFeedbackPanelProps) {
   const [feedbackType, setFeedbackType] =
     useState('GENERAL');
 
@@ -51,6 +75,12 @@ export function ClientFeedbackPanel() {
 
   const [message, setMessage] =
     useState('');
+
+  const [attachment, setAttachment] =
+    useState<File | null>(null);
+
+  const attachmentInputRef =
+    useRef<HTMLInputElement>(null);
 
   const [items, setItems] =
     useState<WorkflowFeedback[]>([]);
@@ -104,6 +134,7 @@ export function ClientFeedbackPanel() {
       setError(
         'اكتب تفاصيل الطلب أولًا',
       );
+
       return;
     }
 
@@ -112,20 +143,49 @@ export function ClientFeedbackPanel() {
     setSuccess(null);
 
     try {
-      await submitWorkflowFeedback({
-        type: feedbackType,
-        subject:
-          subject.trim() ||
-          'طلب من بوابة المتدرب',
-        message: cleanMessage,
-        entityType: 'CLIENT_PORTAL',
-      });
+      await submitWorkflowFeedbackWithFile(
+        {
+          type: feedbackType,
+
+          subject:
+            subject.trim() ||
+            (
+              feedbackType ===
+              'PAYMENT_RECEIPT'
+                ? 'إيصال دفع'
+                : 'طلب من بوابة المتدرب'
+            ),
+
+          message:
+            cleanMessage,
+
+          entityType:
+            'CLIENT_PORTAL',
+
+          metadata: {
+            traineeId:
+              traineeId || undefined,
+
+            traineeName:
+              traineeName || undefined,
+          },
+        },
+        attachment,
+      );
 
       setSubject('');
       setMessage('');
+      setAttachment(null);
+
+      if (
+        attachmentInputRef.current
+      ) {
+        attachmentInputRef.current.value =
+          '';
+      }
 
       setSuccess(
-        'تم إرسال الطلب وربطه بمهمة لدى إدارة الأكاديمية.',
+        'تم إرسال الطلب والصورة إلى إدارة الأكاديمية.',
       );
 
       await loadFeedback();
@@ -156,8 +216,8 @@ export function ClientFeedbackPanel() {
           </h2>
 
           <p>
-            أرسل ملاحظة أو اعتراضًا،
-            وتابع رد الإدارة من نفس الصفحة.
+            أرسل ملاحظة أو إيصال دفع أو اعتراضًا،
+            وأرفق صورة عند الحاجة.
           </p>
         </div>
       </header>
@@ -181,6 +241,10 @@ export function ClientFeedbackPanel() {
           >
             <option value="GENERAL">
               ملاحظة عامة
+            </option>
+
+            <option value="PAYMENT_RECEIPT">
+              إيصال دفع
             </option>
 
             <option value="ATTENDANCE">
@@ -211,7 +275,12 @@ export function ClientFeedbackPanel() {
           <input
             type="text"
             value={subject}
-            placeholder="مثال: مراجعة غياب يوم الأحد"
+            placeholder={
+              feedbackType ===
+              'PAYMENT_RECEIPT'
+                ? 'مثال: إيصال اشتراك شهر أغسطس'
+                : 'مثال: مراجعة غياب يوم الأحد'
+            }
             onChange={(event) =>
               setSubject(
                 event.target.value,
@@ -232,6 +301,54 @@ export function ClientFeedbackPanel() {
               )
             }
           />
+        </label>
+
+        <label className="client-feedback-attachment">
+          <span>
+            إرفاق صورة
+          </span>
+
+          <input
+            ref={attachmentInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={(event) => {
+              const file =
+                event.target
+                  .files?.[0] ??
+                null;
+
+              if (
+                file &&
+                file.size >
+                  5 * 1024 * 1024
+              ) {
+                setAttachment(null);
+                event.target.value = '';
+
+                setError(
+                  'حجم الصورة يجب ألا يزيد عن 5 ميجابايت.',
+                );
+
+                return;
+              }
+
+              setError(null);
+              setAttachment(file);
+            }}
+          />
+
+          <small>
+            JPG أو PNG أو WEBP، بحد أقصى 5 ميجابايت.
+          </small>
+
+          {attachment && (
+            <strong>
+              تم اختيار: {
+                attachment.name
+              }
+            </strong>
+          )}
         </label>
 
         <button
@@ -288,9 +405,20 @@ export function ClientFeedbackPanel() {
           items.map((item) => (
             <article key={item.id}>
               <header>
-                <strong>
-                  {item.subject}
-                </strong>
+                <div>
+                  <small className="client-feedback-type">
+                    {
+                      FEEDBACK_TYPE_LABELS[
+                        item.feedback_type
+                      ] ??
+                      item.feedback_type
+                    }
+                  </small>
+
+                  <strong>
+                    {item.subject}
+                  </strong>
+                </div>
 
                 <span>
                   {
@@ -305,6 +433,20 @@ export function ClientFeedbackPanel() {
               <p>
                 {item.message}
               </p>
+
+              {item.metadata
+                ?.attachment && (
+                <WorkflowAttachmentPreview
+                  feedbackId={
+                    item.id
+                  }
+                  originalName={
+                    item.metadata
+                      .attachment
+                      .originalName
+                  }
+                />
+              )}
 
               <small>
                 {formatDate(

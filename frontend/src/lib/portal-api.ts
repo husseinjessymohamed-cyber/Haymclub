@@ -221,3 +221,26 @@ export function getPortalApiError(
 
   return 'حدث خطأ غير متوقع';
 }
+
+
+export async function getClientTrainingSchedule(
+  traineeId: string,
+): Promise<
+  import('../types/portal')
+    .ClientTrainingSession[]
+> {
+  const response = await api.get(
+    `/portal/trainees/${traineeId}/schedule`,
+  );
+
+  const result =
+    unwrapResponse<unknown>(
+      response.data,
+    );
+
+  return Array.isArray(result)
+    ? result as import(
+        '../types/portal'
+      ).ClientTrainingSession[]
+    : [];
+}

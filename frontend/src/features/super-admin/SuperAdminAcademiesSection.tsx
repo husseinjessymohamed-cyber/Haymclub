@@ -12,6 +12,64 @@ const TOKEN_KEY = "haymclub_super_admin_token";
 
 type PanelMode = "create" | "details" | "edit" | "manager" | "branch" | null;
 
+
+type AcademyFeatureField =
+  | "attendanceEnabled"
+  | "notificationsEnabled"
+  | "rankingsEnabled"
+  | "galleryEnabled"
+  | "subscriptionsEnabled"
+  | "reportsEnabled";
+
+const ACADEMY_FEATURE_OPTIONS: ReadonlyArray<{
+  key: AcademyFeatureField;
+  label: string;
+  icon: string;
+  description: string;
+}> = [
+  {
+    key: "attendanceEnabled",
+    label: "الحضور والغياب",
+    icon: "✓",
+    description:
+      "إنشاء الحصص وتسجيل حضور وغياب المتدربين.",
+  },
+  {
+    key: "notificationsEnabled",
+    label: "الرسائل والإشعارات",
+    icon: "🔔",
+    description:
+      "إرسال الرسائل والتعليمات والتنبيهات.",
+  },
+  {
+    key: "rankingsEnabled",
+    label: "أفضل 10 متدربين",
+    icon: "🏆",
+    description:
+      "تقييم وترتيب أفضل المتدربين.",
+  },
+  {
+    key: "galleryEnabled",
+    label: "معرض الأكاديمية",
+    icon: "🎬",
+    description:
+      "رفع الصور والفيديوهات الخاصة بالأكاديمية.",
+  },
+  {
+    key: "subscriptionsEnabled",
+    label: "الاشتراكات",
+    icon: "💳",
+    description:
+      "إدارة الخطط والمدفوعات والاشتراكات.",
+  },
+  {
+    key: "reportsEnabled",
+    label: "التقارير",
+    icon: "📊",
+    description:
+      "التقارير والتحليلات وتصدير البيانات.",
+  },
+];
 interface Academy {
   id: string;
   name: string;
@@ -29,6 +87,49 @@ interface Academy {
   locale?: string | null;
   createdAt?: string | null;
   created_at?: string | null;
+  attendanceEnabled?: boolean;
+  attendance_enabled?: boolean;
+
+  notificationsEnabled?: boolean;
+  notifications_enabled?: boolean;
+
+  rankingsEnabled?: boolean;
+  rankings_enabled?: boolean;
+
+  galleryEnabled?: boolean;
+  gallery_enabled?: boolean;
+
+  subscriptionsEnabled?: boolean;
+  subscriptions_enabled?: boolean;
+
+  reportsEnabled?: boolean;
+  reports_enabled?: boolean;
+
+}
+
+
+function academyFeatureValue(
+  academy: Academy,
+  camelName: AcademyFeatureField,
+  snakeName:
+    | "attendance_enabled"
+    | "notifications_enabled"
+    | "rankings_enabled"
+    | "gallery_enabled"
+    | "subscriptions_enabled"
+    | "reports_enabled",
+): boolean {
+  const camelValue = academy[camelName];
+
+  if (typeof camelValue === "boolean") {
+    return camelValue;
+  }
+
+  const snakeValue = academy[snakeName];
+
+  return typeof snakeValue === "boolean"
+    ? snakeValue
+    : true;
 }
 
 interface ManagerRow {
@@ -65,7 +166,7 @@ function apiBase(): string {
     );
   }
 
-  return "http://127.0.0.1:3000/api";
+  return "/api";
 }
 
 function unwrap<T>(value: unknown): T {
@@ -161,6 +262,12 @@ export function SuperAdminAcademiesSection() {
     currency: "EGP",
     timezone: "Africa/Cairo",
     locale: "ar",
+    attendanceEnabled: false,
+    notificationsEnabled: false,
+    rankingsEnabled: false,
+    galleryEnabled: false,
+    subscriptionsEnabled: false,
+    reportsEnabled: false,
   });
 
   const [managerForm, setManagerForm] = useState({
@@ -315,6 +422,12 @@ export function SuperAdminAcademiesSection() {
       currency: "EGP",
       timezone: "Africa/Cairo",
       locale: "ar",
+      attendanceEnabled: false,
+      notificationsEnabled: false,
+      rankingsEnabled: false,
+      galleryEnabled: false,
+      subscriptionsEnabled: false,
+      reportsEnabled: false,
     });
 
     setPanelMode("create");
@@ -344,6 +457,48 @@ export function SuperAdminAcademiesSection() {
       currency: academy.currency ?? "EGP",
       timezone: academy.timezone ?? "Africa/Cairo",
       locale: academy.locale ?? "ar",
+      attendanceEnabled:
+        academyFeatureValue(
+          academy,
+          "attendanceEnabled",
+          "attendance_enabled",
+        ),
+
+      notificationsEnabled:
+        academyFeatureValue(
+          academy,
+          "notificationsEnabled",
+          "notifications_enabled",
+        ),
+
+      rankingsEnabled:
+        academyFeatureValue(
+          academy,
+          "rankingsEnabled",
+          "rankings_enabled",
+        ),
+
+      galleryEnabled:
+        academyFeatureValue(
+          academy,
+          "galleryEnabled",
+          "gallery_enabled",
+        ),
+
+      subscriptionsEnabled:
+        academyFeatureValue(
+          academy,
+          "subscriptionsEnabled",
+          "subscriptions_enabled",
+        ),
+
+      reportsEnabled:
+        academyFeatureValue(
+          academy,
+          "reportsEnabled",
+          "reports_enabled",
+        ),
+
     });
 
     setPanelMode("edit");
@@ -404,7 +559,25 @@ export function SuperAdminAcademiesSection() {
           phone: academyForm.phone.trim() || undefined,
 
           status: academyForm.status,
-        }),
+
+            attendanceEnabled:
+              academyForm.attendanceEnabled,
+
+            notificationsEnabled:
+              academyForm.notificationsEnabled,
+
+            rankingsEnabled:
+              academyForm.rankingsEnabled,
+
+            galleryEnabled:
+              academyForm.galleryEnabled,
+
+            subscriptionsEnabled:
+              academyForm.subscriptionsEnabled,
+
+            reportsEnabled:
+              academyForm.reportsEnabled,
+}),
       });
 
       setPanelMode(null);
@@ -458,7 +631,25 @@ export function SuperAdminAcademiesSection() {
           timezone: academyForm.timezone,
 
           locale: academyForm.locale,
-        }),
+
+            attendanceEnabled:
+              academyForm.attendanceEnabled,
+
+            notificationsEnabled:
+              academyForm.notificationsEnabled,
+
+            rankingsEnabled:
+              academyForm.rankingsEnabled,
+
+            galleryEnabled:
+              academyForm.galleryEnabled,
+
+            subscriptionsEnabled:
+              academyForm.subscriptionsEnabled,
+
+            reportsEnabled:
+              academyForm.reportsEnabled,
+}),
       });
 
       setPanelMode(null);
@@ -806,6 +997,63 @@ branchId: managerForm.branchId || undefined,
                   </label>
                 </>
               )}
+              <fieldset className="sacademy-features-fieldset">
+                <legend>
+                  الخصائص المتفق عليها مع الأكاديمية
+                </legend>
+
+                <p>
+                  فعّل فقط الخصائص الموجودة ضمن الاتفاق.
+                  ويمكن تعديلها لاحقًا من نفس الشاشة.
+                </p>
+
+                <div className="sacademy-features-grid">
+                  {ACADEMY_FEATURE_OPTIONS.map(
+                    (feature) => (
+                      <label
+                        key={feature.key}
+                        className={
+                          academyForm[feature.key]
+                            ? "sacademy-feature-option active"
+                            : "sacademy-feature-option"
+                        }
+                      >
+                        <input
+                          type="checkbox"
+                          checked={
+                            academyForm[feature.key]
+                          }
+                          onChange={(event) =>
+                            setAcademyForm(
+                              (current) => ({
+                                ...current,
+                                [feature.key]:
+                                  event.target.checked,
+                              }),
+                            )
+                          }
+                        />
+
+                        <span className="sacademy-feature-icon">
+                          {feature.icon}
+                        </span>
+
+                        <span className="sacademy-feature-copy">
+                          <strong>
+                            {feature.label}
+                          </strong>
+
+                          <small>
+                            {feature.description}
+                          </small>
+                        </span>
+                      </label>
+                    ),
+                  )}
+                </div>
+              </fieldset>
+
+
 
               <div className="sacademy-form-buttons">
                 <button

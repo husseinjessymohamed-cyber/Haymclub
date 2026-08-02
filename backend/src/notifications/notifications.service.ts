@@ -173,8 +173,6 @@ export class NotificationsService {
               notification.id
             AND notificationRead.userId =
               :userId
-            AND notificationRead.deletedAt
-              IS NULL
           `,
           {
             userId,

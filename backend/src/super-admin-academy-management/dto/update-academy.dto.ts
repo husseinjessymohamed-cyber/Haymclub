@@ -1,6 +1,7 @@
 import { Transform } from 'class-transformer';
 
 import {
+  IsBoolean,
   IsEmail,
   IsIn,
   IsOptional,
@@ -59,6 +60,30 @@ export class UpdateSuperAdminAcademyDto {
   @IsString()
   @MaxLength(20)
   locale?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  attendanceEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  notificationsEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  rankingsEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  galleryEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  subscriptionsEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  reportsEnabled?: boolean;
 
   @IsOptional()
   @IsIn(['ACTIVE', 'TRIAL', 'SUSPENDED'])

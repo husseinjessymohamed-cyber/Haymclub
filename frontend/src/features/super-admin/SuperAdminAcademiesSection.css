@@ -355,3 +355,112 @@
     grid-column: auto;
   }
 }
+
+
+/* HAYMCLUB_ACADEMY_FEATURES */
+.sacademy-features-fieldset {
+  grid-column: 1 / -1;
+  margin: 8px 0 2px;
+  padding: 18px;
+  border: 1px solid #d9e2f3;
+  border-radius: 18px;
+  background: #f8faff;
+}
+
+.sacademy-features-fieldset legend {
+  padding: 0 10px;
+  color: #102d63;
+  font-weight: 800;
+}
+
+.sacademy-features-fieldset > p {
+  margin: 0 0 15px;
+  color: #6d7890;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.sacademy-features-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.sacademy-feature-option {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 11px;
+  min-height: 88px;
+  padding: 13px;
+  border: 1px solid #dce4f2;
+  border-radius: 15px;
+  background: #ffffff;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.sacademy-feature-option:hover {
+  transform: translateY(-1px);
+  border-color: #8facf6;
+}
+
+.sacademy-feature-option.active {
+  border-color: #3868ed;
+  background: #eef3ff;
+  box-shadow:
+    0 8px 24px
+    rgba(56, 104, 237, 0.12);
+}
+
+.sacademy-feature-option input {
+  width: 18px !important;
+  height: 18px;
+  margin: 0;
+  accent-color: #3868ed;
+}
+
+.sacademy-feature-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #e6edff;
+  font-size: 20px;
+}
+
+.sacademy-feature-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.sacademy-feature-copy strong {
+  color: #102d63;
+  font-size: 14px;
+}
+
+.sacademy-feature-copy small {
+  color: #758198;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+@media (max-width: 1000px) {
+  .sacademy-features-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 650px) {
+  .sacademy-features-grid {
+    grid-template-columns: 1fr;
+  }
+}

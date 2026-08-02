@@ -131,6 +131,60 @@ export class SuperAdminAcademyManagementService {
         this.setValue(values, columns, ['locale', 'language'], dto.locale);
       }
 
+      if (dto.attendanceEnabled !== undefined) {
+        this.setValue(
+          values,
+          columns,
+          ['attendanceEnabled', 'attendance_enabled'],
+          dto.attendanceEnabled,
+        );
+      }
+
+      if (dto.notificationsEnabled !== undefined) {
+        this.setValue(
+          values,
+          columns,
+          ['notificationsEnabled', 'notifications_enabled'],
+          dto.notificationsEnabled,
+        );
+      }
+
+      if (dto.rankingsEnabled !== undefined) {
+        this.setValue(
+          values,
+          columns,
+          ['rankingsEnabled', 'rankings_enabled'],
+          dto.rankingsEnabled,
+        );
+      }
+
+      if (dto.galleryEnabled !== undefined) {
+        this.setValue(
+          values,
+          columns,
+          ['galleryEnabled', 'gallery_enabled'],
+          dto.galleryEnabled,
+        );
+      }
+
+      if (dto.subscriptionsEnabled !== undefined) {
+        this.setValue(
+          values,
+          columns,
+          ['subscriptionsEnabled', 'subscriptions_enabled'],
+          dto.subscriptionsEnabled,
+        );
+      }
+
+      if (dto.reportsEnabled !== undefined) {
+        this.setValue(
+          values,
+          columns,
+          ['reportsEnabled', 'reports_enabled'],
+          dto.reportsEnabled,
+        );
+      }
+
       if (dto.status !== undefined) {
         await this.setStatusValues(manager, values, columns, dto.status);
       }

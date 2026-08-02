@@ -68,6 +68,48 @@ export class Academy extends BaseEntity {
   currency: string;
 
   @Column({
+    name: 'attendance_enabled',
+    type: 'boolean',
+    default: true,
+  })
+  attendanceEnabled: boolean;
+
+  @Column({
+    name: 'notifications_enabled',
+    type: 'boolean',
+    default: true,
+  })
+  notificationsEnabled: boolean;
+
+  @Column({
+    name: 'rankings_enabled',
+    type: 'boolean',
+    default: true,
+  })
+  rankingsEnabled: boolean;
+
+  @Column({
+    name: 'gallery_enabled',
+    type: 'boolean',
+    default: true,
+  })
+  galleryEnabled: boolean;
+
+  @Column({
+    name: 'subscriptions_enabled',
+    type: 'boolean',
+    default: true,
+  })
+  subscriptionsEnabled: boolean;
+
+  @Column({
+    name: 'reports_enabled',
+    type: 'boolean',
+    default: true,
+  })
+  reportsEnabled: boolean;
+
+  @Column({
     type: 'enum',
     enum: AcademyStatus,
     enumName: 'academy_status_enum',

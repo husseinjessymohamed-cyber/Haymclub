@@ -39,7 +39,8 @@ function parseBoolean(value: string | undefined, defaultValue: boolean): boolean
 
         synchronize: parseBoolean(
           configService.get<string>('DB_SYNCHRONIZE'),
-          true,
+          configService.get<string>('NODE_ENV') !==
+            'production',
         ),
 
         logging: parseBoolean(

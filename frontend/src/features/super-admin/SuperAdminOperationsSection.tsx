@@ -75,7 +75,7 @@ function apiBase(): string {
     );
   }
 
-  return "http://127.0.0.1:3000/api";
+  return "/api";
 }
 
 function unwrap<T>(value: unknown): T {

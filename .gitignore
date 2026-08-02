@@ -31,3 +31,7 @@ project-backups/
 # Private environment files
 .env.*
 !.env.example
+
+# Runtime uploaded files
+backend/storage/*
+!backend/storage/.gitkeep

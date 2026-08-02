@@ -115,6 +115,37 @@ export class SuperAdminAcademiesService {
 
     setCandidate(['locale', 'language'], 'ar');
 
+    setCandidate(
+      ['attendanceEnabled', 'attendance_enabled'],
+      dto.attendanceEnabled ?? false,
+    );
+
+    setCandidate(
+      ['notificationsEnabled', 'notifications_enabled'],
+      dto.notificationsEnabled ?? false,
+    );
+
+    setCandidate(
+      ['rankingsEnabled', 'rankings_enabled'],
+      dto.rankingsEnabled ?? false,
+    );
+
+    setCandidate(
+      ['galleryEnabled', 'gallery_enabled'],
+      dto.galleryEnabled ?? false,
+    );
+
+    setCandidate(
+      ['subscriptionsEnabled', 'subscriptions_enabled'],
+      dto.subscriptionsEnabled ?? false,
+    );
+
+    setCandidate(
+      ['reportsEnabled', 'reports_enabled'],
+      dto.reportsEnabled ?? false,
+    );
+
+
     setCandidate(['createdAt', 'created_at'], new Date());
 
     setCandidate(['updatedAt', 'updated_at'], new Date());
