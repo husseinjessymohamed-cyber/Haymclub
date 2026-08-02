@@ -664,3 +664,171 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* WORKFLOW CLIENT FEEDBACK START */
+
+.client-feedback-panel {
+  margin-top: 24px;
+  padding: 22px;
+  border: 1px solid #dce5f5;
+  border-radius: 18px;
+  background: #ffffff;
+  color: #102b5b;
+}
+
+.client-feedback-header span {
+  color: #315de5;
+  font-weight: 800;
+}
+
+.client-feedback-header h2 {
+  margin: 6px 0;
+}
+
+.client-feedback-header p {
+  margin: 0;
+  color: #71809b;
+}
+
+.client-feedback-form {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.client-feedback-form label {
+  display: grid;
+  gap: 7px;
+  color: #42567b;
+  font-weight: 700;
+}
+
+.client-feedback-form input,
+.client-feedback-form select,
+.client-feedback-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px;
+  border: 1px solid #d6e0f1;
+  border-radius: 10px;
+  background: #ffffff;
+  font: inherit;
+}
+
+.client-feedback-message {
+  grid-column: 1 / -1;
+}
+
+.client-feedback-form textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.client-feedback-form button,
+.client-feedback-history-title button {
+  border: 0;
+  border-radius: 10px;
+  padding: 11px 17px;
+  background: #315de5;
+  color: #ffffff;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.client-feedback-form button {
+  justify-self: start;
+}
+
+.client-feedback-form button:disabled,
+.client-feedback-history-title button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.client-feedback-success,
+.client-feedback-error {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 10px;
+}
+
+.client-feedback-success {
+  background: #eaf9f3;
+  color: #08784e;
+}
+
+.client-feedback-error {
+  background: #fff0f0;
+  color: #b4232d;
+}
+
+.client-feedback-history {
+  margin-top: 24px;
+}
+
+.client-feedback-history-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.client-feedback-history article {
+  margin-top: 12px;
+  padding: 15px;
+  border: 1px solid #e0e7f4;
+  border-radius: 12px;
+  background: #f8faff;
+}
+
+.client-feedback-history article > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.client-feedback-history article > header span {
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: #eaf0ff;
+  color: #315de5;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.client-feedback-history article > p {
+  line-height: 1.8;
+  color: #536786;
+}
+
+.client-feedback-history article > small {
+  color: #8190a9;
+}
+
+.client-feedback-response {
+  margin-top: 13px;
+  padding: 13px;
+  border-right: 4px solid #149b69;
+  border-radius: 9px;
+  background: #eaf9f3;
+}
+
+.client-feedback-response p {
+  margin-bottom: 0;
+}
+
+@media (max-width: 760px) {
+  .client-feedback-form {
+    grid-template-columns: 1fr;
+  }
+
+  .client-feedback-message {
+    grid-column: auto;
+  }
+}
+
+/* WORKFLOW CLIENT FEEDBACK END */

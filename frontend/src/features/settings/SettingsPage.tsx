@@ -2124,7 +2124,7 @@ const selectedAcademy =
                         required
                         minLength={2}
                         maxLength={60}
-                        pattern="[A-Za-z0-9_-]+"
+                        pattern="(?:[A-Za-z0-9_]|-)+"
                         value={valueString(
                           form,
                           'code',
@@ -2280,7 +2280,7 @@ const selectedAcademy =
                         required
                         minLength={2}
                         maxLength={50}
-                        pattern="[A-Za-z0-9_-]+"
+                        pattern="(?:[A-Za-z0-9_]|-)+"
                         value={valueString(
                           form,
                           'code',
@@ -2385,7 +2385,7 @@ const selectedAcademy =
                         required
                         minLength={2}
                         maxLength={60}
-                        pattern="[A-Za-z0-9_-]+"
+                        pattern="(?:[A-Za-z0-9_]|-)+"
                         value={valueString(
                           form,
                           'code',

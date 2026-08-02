@@ -6,6 +6,8 @@ import {
   useState,
 } from 'react';
 
+import { api } from '../../lib/api';
+
 import {
   createTrainee,
   deleteTrainee,
@@ -13,6 +15,7 @@ import {
   getApiErrorMessage,
   getTrainees,
   updateTrainee,
+  uploadTraineePhoto,
 } from '../../lib/trainees-api';
 
 import type {
@@ -228,6 +231,7 @@ interface TraineeFormState {
   gender: TraineeGender;
   phone: string;
   email: string;
+  profileImageUrl: string;
   medicalNotes: string;
   emergencyNotes: string;
   status: TraineeStatus;
@@ -243,6 +247,7 @@ const EMPTY_FORM: TraineeFormState = {
   gender: 'MALE',
   phone: '',
   email: '',
+  profileImageUrl: '',
   medicalNotes: '',
   emergencyNotes: '',
   status: 'ACTIVE',
@@ -318,6 +323,87 @@ function getCurrentGroup(trainee: Trainee): string {
   );
 }
 
+
+interface ProtectedTraineePhotoProps {
+  url?: string | null;
+  alt: string;
+  fallback: string;
+}
+
+function ProtectedTraineePhoto({
+  url,
+  alt,
+  fallback,
+}: ProtectedTraineePhotoProps) {
+  const [source, setSource] = useState('');
+
+  useEffect(() => {
+    setSource('');
+
+    if (!url) {
+      return undefined;
+    }
+
+    if (
+      url.startsWith('blob:') ||
+      url.startsWith('data:') ||
+      /^https?:\/\//i.test(url)
+    ) {
+      setSource(url);
+
+      return undefined;
+    }
+
+    let active = true;
+    let objectUrl = '';
+
+    const endpoint = url.startsWith('/api/')
+      ? url.slice(4)
+      : url;
+
+    void api
+      .get<Blob>(endpoint, {
+        responseType: 'blob',
+      })
+      .then((response) => {
+        objectUrl = URL.createObjectURL(
+          response.data,
+        );
+
+        if (active) {
+          setSource(objectUrl);
+        } else {
+          URL.revokeObjectURL(objectUrl);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setSource('');
+        }
+      });
+
+    return () => {
+      active = false;
+
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [url]);
+
+  if (!source) {
+    return <span>{fallback}</span>;
+  }
+
+  return (
+    <img
+      src={source}
+      alt={alt}
+      loading="lazy"
+    />
+  );
+}
+
 export function TraineesPage({
   onBack,
 }: TraineesPageProps) {
@@ -386,6 +472,20 @@ export function TraineesPage({
 
   const [form, setForm] =
     useState<TraineeFormState>(EMPTY_FORM);
+
+  const [selectedPhoto, setSelectedPhoto] =
+    useState<File | null>(null);
+
+  const [photoPreviewUrl, setPhotoPreviewUrl] =
+    useState('');
+
+  useEffect(() => {
+    return () => {
+      if (photoPreviewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(photoPreviewUrl);
+      }
+    };
+  }, [photoPreviewUrl]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -504,6 +604,9 @@ export function TraineesPage({
 
     setEditingTrainee(null);
 
+    setSelectedPhoto(null);
+    setPhotoPreviewUrl('');
+
     setForm({
       ...EMPTY_FORM,
       branchId: context.branchId ?? '',
@@ -517,6 +620,11 @@ export function TraineesPage({
   function openEditModal(trainee: Trainee): void {
     setEditingTrainee(trainee);
 
+    setSelectedPhoto(null);
+    setPhotoPreviewUrl(
+      trainee.profileImageUrl ?? '',
+    );
+
     setForm({
       registrationCode:
         trainee.registrationCode ?? '',
@@ -527,6 +635,8 @@ export function TraineesPage({
       gender: trainee.gender,
       phone: trainee.phone ?? '',
       email: trainee.email ?? '',
+      profileImageUrl:
+        trainee.profileImageUrl ?? '',
       medicalNotes: trainee.medicalNotes ?? '',
       emergencyNotes:
         trainee.emergencyNotes ?? '',
@@ -547,7 +657,69 @@ export function TraineesPage({
 
     setModalOpen(false);
     setEditingTrainee(null);
+    setSelectedPhoto(null);
+    setPhotoPreviewUrl('');
     setForm(EMPTY_FORM);
+  }
+
+
+  function handlePhotoChange(
+    event: React.ChangeEvent<HTMLInputElement>,
+  ): void {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    const allowedTypes = [
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      setError(
+        'يسمح فقط بصور JPG أو PNG أو WEBP',
+      );
+
+      event.target.value = '';
+
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError(
+        'حجم صورة المتدرب يجب ألا يتجاوز 5MB',
+      );
+
+      event.target.value = '';
+
+      return;
+    }
+
+    setError('');
+    setSelectedPhoto(file);
+    setPhotoPreviewUrl(
+      URL.createObjectURL(file),
+    );
+  }
+
+  async function uploadCurrentPhoto():
+  Promise<string | undefined> {
+    if (!selectedPhoto) {
+      return (
+        form.profileImageUrl.trim() ||
+        undefined
+      );
+    }
+
+    const uploaded =
+      await uploadTraineePhoto(
+        selectedPhoto,
+      );
+
+    return uploaded.url;
   }
 
   async function handleSubmit(
@@ -588,8 +760,12 @@ export function TraineesPage({
       };
 
       if (editingTrainee) {
+        const profileImageUrl =
+          await uploadCurrentPhoto();
+
         const updateInput: UpdateTraineeInput = {
           ...commonInput,
+          profileImageUrl,
         };
 
         await updateTrainee(
@@ -734,6 +910,10 @@ export function TraineesPage({
             subscriptionForm.startDate,
             subscriptionForm.endDate,
           );
+
+        
+        createInput.profileImageUrl =
+          await uploadCurrentPhoto();
 
         const createdTrainee =
           await createTrainee(
@@ -1025,10 +1205,16 @@ export function TraineesPage({
                     <td>
                       <div className="trainee-person">
                         <span className="trainee-avatar">
-                          {trainee.firstName
-                            .charAt(0)
-                            .toUpperCase()}
-                        </span>
+                            <ProtectedTraineePhoto
+                              url={
+                                trainee.profileImageUrl
+                              }
+                              alt={`صورة ${trainee.firstName} ${trainee.lastName}`}
+                              fallback={trainee.firstName
+                                .charAt(0)
+                                .toUpperCase()}
+                            />
+                          </span>
 
                         <div>
                           <strong>
@@ -1147,6 +1333,45 @@ export function TraineesPage({
 
             <form onSubmit={handleSubmit}>
               <div className="trainees-form-grid">
+                  <div className="trainees-photo-field trainees-full-field">
+                    <div className="trainees-photo-preview">
+                      <ProtectedTraineePhoto
+                        url={photoPreviewUrl}
+                        alt="معاينة صورة المتدرب"
+                        fallback={
+                          form.firstName
+                            .charAt(0)
+                            .toUpperCase() ||
+                          '📷'
+                        }
+                      />
+                    </div>
+
+                    <div className="trainees-photo-details">
+                      <strong>صورة المتدرب</strong>
+
+                      <p>
+                        JPG أو PNG أو WEBP، بحد أقصى 5MB.
+                      </p>
+
+                      <label className="trainees-photo-button">
+                        اختيار صورة
+
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          onChange={handlePhotoChange}
+                          disabled={saving}
+                        />
+                      </label>
+
+                      {selectedPhoto && (
+                        <small>
+                          {selectedPhoto.name}
+                        </small>
+                      )}
+                    </div>
+                  </div>
                 <label>
                   الاسم الأول
                   <input
@@ -1264,7 +1489,7 @@ export function TraineesPage({
                   كود التسجيل
                   <input
                     maxLength={60}
-                    pattern="[A-Za-z0-9_-]+"
+                    pattern="(?:[A-Za-z0-9_]|-)+"
                     placeholder="يُنشأ تلقائيًا عند تركه فارغًا"
                     value={form.registrationCode}
                     onChange={(event) => {

@@ -22,6 +22,18 @@ import type {
   AcademyRole,
 } from '../../types/users';
 
+import {
+  RankingsPage,
+} from '../rankings/RankingsPage';
+
+import {
+  GalleryPage,
+} from '../gallery/GalleryPage';
+
+import {
+  NotificationsPage,
+} from '../notifications/NotificationsPage';
+
 import './DashboardPage.css';
 
 interface DashboardPageProps {
@@ -85,6 +97,43 @@ NavigationItem[] = [
     route: 'attendance',
   },
   {
+    // HAYMCLUB_NOTIFICATIONS_NAVIGATION
+    label: 'الرسائل والإشعارات',
+    icon: '🔔',
+    route: 'notifications',
+    roles: [
+      'SUPER_ADMIN',
+      'ACADEMY_ADMIN',
+      'BRANCH_MANAGER',
+      'RECEPTIONIST',
+      'COACH',
+    ],
+  },
+  {
+    // HAYMCLUB_RANKINGS_NAVIGATION
+    label: 'أفضل 10 متدربين',
+    icon: '🏆',
+    route: 'rankings',
+    roles: [
+      'ACADEMY_ADMIN',
+      'BRANCH_MANAGER',
+      'RECEPTIONIST',
+      'COACH',
+    ],
+  },
+  {
+    // HAYMCLUB_GALLERY_NAVIGATION
+    label: 'معرض الأكاديمية',
+    icon: '🎬',
+    route: 'gallery',
+    roles: [
+      'ACADEMY_ADMIN',
+      'BRANCH_MANAGER',
+      'RECEPTIONIST',
+      'COACH',
+    ],
+  },
+  {
     label: 'الاشتراكات',
     icon: '💳',
     route: 'billing',
@@ -124,6 +173,7 @@ NavigationItem[] = [
     icon: '👤',
     route: 'users',
   },
+  
   {
     label: 'الإعدادات',
     icon: '⚙',
@@ -656,8 +706,18 @@ export function DashboardPage({
                 }
                 className={
                   item.route === ''
-                    ? 'active'
-                    : ''
+                    ? (
+                        !window.location.hash ||
+                        window.location.hash === '#' ||
+                        window.location.hash === '#/'
+                          ? 'active'
+                          : ''
+                      )
+                    : window.location.hash.includes(
+                        item.route,
+                      )
+                      ? 'active'
+                      : ''
                 }
                 onClick={() => {
                   setMobileMenuOpen(false);
@@ -690,6 +750,22 @@ export function DashboardPage({
       </aside>
 
       <main className="professional-dashboard-main">
+        {/* HAYMCLUB_NOTIFICATIONS_ROUTE_START */}
+        {window.location.hash.includes(
+          'notifications',
+        ) ? (
+          <NotificationsPage />
+        ) : window.location.hash.includes(
+            'gallery',
+          ) ? (
+          <GalleryPage />
+        ) : window.location.hash.includes(
+            'rankings',
+          ) ? (
+          <RankingsPage />
+        ) : (
+          <>
+
         <header className="professional-dashboard-header">
           <div>
             <p className="dashboard-welcome">
@@ -1360,7 +1436,11 @@ export function DashboardPage({
             </section>
           </>
         ) : null}
-      </main>
+      
+          </>
+        )}
+        {/* HAYMCLUB_NOTIFICATIONS_ROUTE_END */}
+</main>
     </div>
   );
 }

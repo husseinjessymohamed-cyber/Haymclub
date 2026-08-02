@@ -1,4 +1,8 @@
 import {
+  useQueryClient,
+} from '@tanstack/react-query';
+
+import {
   useEffect,
   useMemo,
   useState,
@@ -76,7 +80,15 @@ interface PaymentFormState {
 interface RenewalFormState {
   planId: string;
   startDate: string;
+  endDate: string;
+  price: string;
+  registrationFee: string;
+  sessionsLimit: string;
   discountAmount: string;
+  paymentAmount: string;
+  method: PaymentMethod;
+  paidAt: string;
+  referenceNumber: string;
   notes: string;
 }
 
@@ -128,7 +140,17 @@ const EMPTY_PAYMENT_FORM: PaymentFormState = {
 const EMPTY_RENEWAL_FORM: RenewalFormState = {
   planId: '',
   startDate: '',
+  endDate: '',
+  price: '0',
+  registrationFee: '0',
+  sessionsLimit: '',
   discountAmount: '0',
+  paymentAmount: '0',
+  method: 'CASH',
+  paidAt: new Date()
+    .toISOString()
+    .slice(0, 10),
+  referenceNumber: '',
   notes: '',
 };
 
@@ -188,6 +210,37 @@ function dateTimeLabel(value: string): string {
   }).format(parsed);
 }
 
+function addDaysToInputDate(
+  date: string,
+  days: number,
+): string {
+  const result =
+    new Date(`${date}T00:00:00Z`);
+
+  result.setUTCDate(
+    result.getUTCDate() +
+    days,
+  );
+
+  return result
+    .toISOString()
+    .slice(0, 10);
+}
+
+function isEndDateValid(
+  startDate: string,
+  endDate: string,
+): boolean {
+  if (
+    !startDate ||
+    !endDate
+  ) {
+    return false;
+  }
+
+  return endDate >= startDate;
+}
+
 function traineeName(
   trainee?: Trainee,
 ): string {
@@ -239,6 +292,8 @@ function positiveInteger(
 export function BillingPage({
   onBack,
 }: BillingPageProps) {
+  const queryClient = useQueryClient();
+
   const [tab, setTab] =
     useState<BillingTab>('subscriptions');
 
@@ -1026,12 +1081,91 @@ export function BillingPage({
   function openRenewal(
     subscription: TraineeSubscription,
   ): void {
-    setRenewalSubscription(subscription);
+    const selectedPlan =
+      plans.find(
+        (plan) =>
+          plan.id ===
+          subscription.planId,
+      ) ??
+      subscription.plan;
+
+    const today =
+      new Date()
+        .toISOString()
+        .slice(0, 10);
+
+    const durationDays =
+      selectedPlan?.durationDays ??
+      30;
+
+    setRenewalSubscription(
+      subscription,
+    );
 
     setRenewalForm({
       ...EMPTY_RENEWAL_FORM,
 
-      planId: subscription.planId,
+      planId:
+        subscription.planId,
+
+      startDate:
+        today,
+
+      endDate:
+        addDaysToInputDate(
+          today,
+          durationDays,
+        ),
+
+      price:
+        String(
+          selectedPlan?.price ??
+          subscription.subtotalAmount,
+        ),
+
+      registrationFee:
+        String(
+          selectedPlan
+            ?.registrationFee ??
+          0,
+        ),
+
+      sessionsLimit:
+        subscription.sessionsLimit !==
+          null &&
+        subscription.sessionsLimit !==
+          undefined
+          ? String(
+              subscription.sessionsLimit,
+            )
+          : selectedPlan
+                ?.sessionsLimit !==
+              null &&
+            selectedPlan
+              ?.sessionsLimit !==
+              undefined
+            ? String(
+                selectedPlan.sessionsLimit,
+              )
+            : '',
+
+      discountAmount:
+        '0',
+
+      paymentAmount:
+        '0',
+
+      method:
+        'CASH',
+
+      paidAt:
+        today,
+
+      referenceNumber:
+        '',
+
+      notes:
+        '',
     });
 
     setError('');
@@ -1052,44 +1186,159 @@ export function BillingPage({
     setNotice('');
 
     try {
-      await renewSubscription(
-        renewalSubscription.id,
-        {
-          planId:
-            renewalForm.planId ||
-            undefined,
+      if (!renewalForm.planId) {
+        throw new Error(
+          'يجب اختيار خطة الاشتراك',
+        );
+      }
 
-          startDate:
-            renewalForm.startDate ||
-            undefined,
+      if (
+        !isEndDateValid(
+          renewalForm.startDate,
+          renewalForm.endDate,
+        )
+      ) {
+        throw new Error(
+          'تاريخ نهاية الاشتراك يجب أن يكون بعد تاريخ البداية',
+        );
+      }
 
-          discountAmount:
-            positiveNumber(
+      const price =
+        positiveNumber(
+          renewalForm.price,
+          'قيمة الاشتراك',
+        );
+
+      const registrationFee =
+        positiveNumber(
+          renewalForm
+            .registrationFee ||
+          '0',
+          'رسوم التسجيل',
+        );
+
+      const discountAmount =
+        positiveNumber(
+          renewalForm
+            .discountAmount ||
+          '0',
+          'الخصم',
+        );
+
+      const sessionsLimit =
+        renewalForm.sessionsLimit
+          ? positiveInteger(
+              renewalForm.sessionsLimit,
+              'عدد الحصص',
+              1,
+            )
+          : undefined;
+
+      const paymentAmount =
+        positiveNumber(
+          renewalForm
+            .paymentAmount ||
+          '0',
+          'قيمة الدفعة',
+        );
+
+      const grossAmount =
+        price +
+        registrationFee;
+
+      if (
+        discountAmount >
+        grossAmount
+      ) {
+        throw new Error(
+          'الخصم أكبر من قيمة الاشتراك',
+        );
+      }
+
+      const totalAmount =
+        grossAmount -
+        discountAmount;
+
+      if (
+        paymentAmount >
+        totalAmount
+      ) {
+        throw new Error(
+          'قيمة الدفعة أكبر من إجمالي الاشتراك بعد الخصم',
+        );
+      }
+
+      const updated =
+        await renewSubscription(
+          renewalSubscription.id,
+          {
+            planId:
+              renewalForm.planId,
+
+            startDate:
+              renewalForm.startDate,
+
+            endDate:
+              renewalForm.endDate,
+
+            price,
+            registrationFee,
+            sessionsLimit,
+            discountAmount,
+            paymentAmount,
+
+            paymentMethod:
+              paymentAmount > 0
+                ? renewalForm.method
+                : undefined,
+
+            paidAt:
+              paymentAmount > 0
+                ? renewalForm.paidAt
+                : undefined,
+
+            referenceNumber:
               renewalForm
-                .discountAmount || '0',
-              'الخصم',
-            ),
+                .referenceNumber
+                .trim() ||
+              undefined,
 
-          notes:
-            renewalForm.notes.trim() ||
-            undefined,
-        },
-      );
+            paymentNotes:
+              renewalForm.notes
+                .trim() ||
+              undefined,
+
+            notes:
+              renewalForm.notes
+                .trim() ||
+              undefined,
+          },
+        );
 
       setRenewalSubscription(null);
+      setDetailSubscription(updated);
 
       await loadBillingData(
         referenceData.academyId,
       );
 
+      await queryClient
+        .invalidateQueries();
+
       showMessage(
         'success',
-        'تم تجديد الاشتراك بنجاح',
+        paymentAmount > 0
+          ? 'تم تجديد الاشتراك وتسجيل الدفعة وإصدار الإيصال وتحديث جميع الأقسام'
+          : 'تم تجديد الاشتراك وتحديث جميع الأقسام والمنصات المرتبطة',
       );
-    } catch (renewalError: unknown) {
+    } catch (
+      renewalError: unknown
+    ) {
       showMessage(
         'error',
-        getBillingApiError(renewalError),
+        getBillingApiError(
+          renewalError,
+        ),
       );
     } finally {
       setSaving(false);
@@ -1999,7 +2248,7 @@ export function BillingPage({
                     required
                     minLength={2}
                     maxLength={60}
-                    pattern="[A-Za-z0-9_-]+"
+                    pattern="(?:[A-Za-z0-9_]|-)+"
                     value={planForm.code}
                     onChange={(event) =>
                       setPlanForm(
@@ -2762,100 +3011,458 @@ export function BillingPage({
             </header>
 
             <form onSubmit={submitRenewal}>
-              <div className="billing-form-grid">
-                <label>
-                  الخطة الجديدة
-                  <select
-                    value={
-                      renewalForm.planId
-                    }
-                    onChange={(event) =>
-                      setRenewalForm(
-                        (current) => ({
-                          ...current,
-                          planId:
-                            event.target
-                              .value,
-                        }),
-                      )
-                    }
-                  >
-                    {activePlans.map(
-                      (plan) => (
-                        <option
-                          key={plan.id}
-                          value={plan.id}
-                        >
-                          {plan.name}
-                        </option>
+              <label>
+                خطة الاشتراك
+
+                <select
+                  required
+                  value={
+                    renewalForm.planId
+                  }
+                  onChange={(event) => {
+                    const planId =
+                      event.target.value;
+
+                    const selectedPlan =
+                      plans.find(
+                        (plan) =>
+                          plan.id ===
+                          planId,
+                      );
+
+                    setRenewalForm(
+                      (current) => ({
+                        ...current,
+                        planId,
+
+                        price:
+                          selectedPlan
+                            ? String(
+                                selectedPlan.price,
+                              )
+                            : current.price,
+
+                        registrationFee:
+                          selectedPlan
+                            ? String(
+                                selectedPlan
+                                  .registrationFee,
+                              )
+                            : current
+                                .registrationFee,
+
+                        sessionsLimit:
+                          selectedPlan
+                            ?.sessionsLimit !==
+                            null &&
+                          selectedPlan
+                            ?.sessionsLimit !==
+                            undefined
+                            ? String(
+                                selectedPlan
+                                  .sessionsLimit,
+                              )
+                            : '',
+
+                        endDate:
+                          selectedPlan &&
+                          current.startDate
+                            ? addDaysToInputDate(
+                                current.startDate,
+                                selectedPlan
+                                  .durationDays,
+                              )
+                            : current.endDate,
+                      }),
+                    );
+                  }}
+                >
+                  <option value="">
+                    اختر الخطة
+                  </option>
+
+                  {activePlans.map(
+                    (plan) => (
+                      <option
+                        key={plan.id}
+                        value={plan.id}
+                      >
+                        {plan.name}
+                      </option>
+                    ),
+                  )}
+                </select>
+              </label>
+
+              <label>
+                تاريخ بداية التجديد
+
+                <input
+                  required
+                  type="date"
+                  value={
+                    renewalForm.startDate
+                  }
+                  onChange={(event) => {
+                    const startDate =
+                      event.target.value;
+
+                    const selectedPlan =
+                      plans.find(
+                        (plan) =>
+                          plan.id ===
+                          renewalForm.planId,
+                      );
+
+                    setRenewalForm(
+                      (current) => ({
+                        ...current,
+                        startDate,
+
+                        endDate:
+                          selectedPlan
+                            ? addDaysToInputDate(
+                                startDate,
+                                selectedPlan
+                                  .durationDays,
+                              )
+                            : current.endDate,
+                      }),
+                    );
+                  }}
+                />
+              </label>
+
+              <label>
+                تاريخ نهاية التجديد
+
+                <input
+                  required
+                  type="date"
+                  min={
+                    renewalForm.startDate
+                  }
+                  value={
+                    renewalForm.endDate
+                  }
+                  onChange={(event) =>
+                    setRenewalForm(
+                      (current) => ({
+                        ...current,
+
+                        endDate:
+                          event.target.value,
+                      }),
+                    )
+                  }
+                />
+              </label>
+
+              <label>
+                قيمة الاشتراك
+
+                <input
+                  required
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={
+                    renewalForm.price
+                  }
+                  onChange={(event) =>
+                    setRenewalForm(
+                      (current) => ({
+                        ...current,
+
+                        price:
+                          event.target.value,
+                      }),
+                    )
+                  }
+                />
+              </label>
+
+              <label>
+                رسوم التسجيل
+
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={
+                    renewalForm
+                      .registrationFee
+                  }
+                  onChange={(event) =>
+                    setRenewalForm(
+                      (current) => ({
+                        ...current,
+
+                        registrationFee:
+                          event.target.value,
+                      }),
+                    )
+                  }
+                />
+              </label>
+
+              <label>
+                عدد الحصص الجديدة
+
+                <input
+                  type="number"
+                  min={1}
+                  max={1000}
+                  step={1}
+                  value={
+                    renewalForm
+                      .sessionsLimit
+                  }
+                  placeholder="اتركه فارغًا لعدد غير محدود"
+                  onChange={(event) =>
+                    setRenewalForm(
+                      (current) => ({
+                        ...current,
+
+                        sessionsLimit:
+                          event.target.value,
+                      }),
+                    )
+                  }
+                />
+              </label>
+
+              <label>
+                الخصم
+
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={
+                    renewalForm
+                      .discountAmount
+                  }
+                  onChange={(event) =>
+                    setRenewalForm(
+                      (current) => ({
+                        ...current,
+
+                        discountAmount:
+                          event.target.value,
+                      }),
+                    )
+                  }
+                />
+              </label>
+
+              <label>
+                المبلغ المدفوع الآن
+
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={
+                    renewalForm
+                      .paymentAmount
+                  }
+                  onChange={(event) =>
+                    setRenewalForm(
+                      (current) => ({
+                        ...current,
+
+                        paymentAmount:
+                          event.target.value,
+                      }),
+                    )
+                  }
+                />
+              </label>
+
+              <label>
+                طريقة الدفع
+
+                <select
+                  value={
+                    renewalForm.method
+                  }
+                  disabled={
+                    Number(
+                      renewalForm
+                        .paymentAmount,
+                    ) <= 0
+                  }
+                  onChange={(event) =>
+                    setRenewalForm(
+                      (current) => ({
+                        ...current,
+
+                        method:
+                          event.target
+                            .value as PaymentMethod,
+                      }),
+                    )
+                  }
+                >
+                  {Object.entries(
+                    PAYMENT_METHOD_LABELS,
+                  ).map(
+                    ([value, label]) => (
+                      <option
+                        key={value}
+                        value={value}
+                      >
+                        {label}
+                      </option>
+                    ),
+                  )}
+                </select>
+              </label>
+
+              <label>
+                تاريخ الدفع
+
+                <input
+                  type="date"
+                  disabled={
+                    Number(
+                      renewalForm
+                        .paymentAmount,
+                    ) <= 0
+                  }
+                  value={
+                    renewalForm.paidAt
+                  }
+                  onChange={(event) =>
+                    setRenewalForm(
+                      (current) => ({
+                        ...current,
+
+                        paidAt:
+                          event.target.value,
+                      }),
+                    )
+                  }
+                />
+              </label>
+
+              <label>
+                الرقم المرجعي للدفع
+
+                <input
+                  maxLength={150}
+                  disabled={
+                    Number(
+                      renewalForm
+                        .paymentAmount,
+                    ) <= 0
+                  }
+                  value={
+                    renewalForm
+                      .referenceNumber
+                  }
+                  placeholder="اختياري"
+                  onChange={(event) =>
+                    setRenewalForm(
+                      (current) => ({
+                        ...current,
+
+                        referenceNumber:
+                          event.target.value,
+                      }),
+                    )
+                  }
+                />
+              </label>
+
+              <div className="billing-renewal-summary">
+                <span>
+                  إجمالي التجديد بعد الخصم
+                </span>
+
+                <strong>
+                  {money(
+                    Math.max(
+                      0,
+
+                      (
+                        Number(
+                          renewalForm.price,
+                        ) || 0
+                      ) +
+                      (
+                        Number(
+                          renewalForm
+                            .registrationFee,
+                        ) || 0
+                      ) -
+                      (
+                        Number(
+                          renewalForm
+                            .discountAmount,
+                        ) || 0
                       ),
-                    )}
-                  </select>
-                </label>
+                    ),
+                  )}
+                </strong>
 
-                <label>
-                  تاريخ البداية
-                  <input
-                    type="date"
-                    value={
-                      renewalForm.startDate
-                    }
-                    onChange={(event) =>
-                      setRenewalForm(
-                        (current) => ({
-                          ...current,
-                          startDate:
-                            event.target
-                              .value,
-                        }),
-                      )
-                    }
-                  />
-                </label>
+                <small>
+                  المتبقي بعد الدفعة:{' '}
 
-                <label>
-                  قيمة الخصم
-                  <input
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={
-                      renewalForm.discountAmount
-                    }
-                    onChange={(event) =>
-                      setRenewalForm(
-                        (current) => ({
-                          ...current,
-                          discountAmount:
-                            event.target
-                              .value,
-                        }),
-                      )
-                    }
-                  />
-                </label>
+                  {money(
+                    Math.max(
+                      0,
 
-                <label className="billing-full-field">
-                  ملاحظات
-                  <textarea
-                    rows={3}
-                    maxLength={1500}
-                    value={
-                      renewalForm.notes
-                    }
-                    onChange={(event) =>
-                      setRenewalForm(
-                        (current) => ({
-                          ...current,
-                          notes:
-                            event.target
-                              .value,
-                        }),
-                      )
-                    }
-                  />
-                </label>
+                      (
+                        Number(
+                          renewalForm.price,
+                        ) || 0
+                      ) +
+                      (
+                        Number(
+                          renewalForm
+                            .registrationFee,
+                        ) || 0
+                      ) -
+                      (
+                        Number(
+                          renewalForm
+                            .discountAmount,
+                        ) || 0
+                      ) -
+                      (
+                        Number(
+                          renewalForm
+                            .paymentAmount,
+                        ) || 0
+                      ),
+                    ),
+                  )}
+                </small>
               </div>
+
+              <label className="billing-full-field">
+                ملاحظات التجديد والدفع
+
+                <textarea
+                  rows={3}
+                  maxLength={1500}
+                  value={
+                    renewalForm.notes
+                  }
+                  onChange={(event) =>
+                    setRenewalForm(
+                      (current) => ({
+                        ...current,
+
+                        notes:
+                          event.target.value,
+                      }),
+                    )
+                  }
+                />
+              </label>
 
               <footer>
                 <button
@@ -2877,8 +3484,8 @@ export function BillingPage({
                   disabled={saving}
                 >
                   {saving
-                    ? 'جارٍ التجديد...'
-                    : 'تجديد الاشتراك'}
+                    ? 'جارٍ تنفيذ التجديد...'
+                    : 'تجديد وتحديث كل البيانات'}
                 </button>
               </footer>
             </form>

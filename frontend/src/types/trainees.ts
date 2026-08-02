@@ -49,6 +49,7 @@ export interface Trainee {
   gender: TraineeGender;
   phone: string | null;
   email: string | null;
+  profileImageUrl: string | null;
   medicalNotes: string | null;
   emergencyNotes: string | null;
   status: TraineeStatus;
@@ -82,6 +83,7 @@ export interface CreateTraineeInput {
   gender: TraineeGender;
   phone?: string;
   email?: string;
+  profileImageUrl?: string;
   medicalNotes?: string;
   emergencyNotes?: string;
   status?: TraineeStatus;

@@ -257,7 +257,11 @@ export class BillingController {
 
     this.assertSubscriptionAccess(currentUser, subscription);
 
-    return this.billingService.renewSubscription(id, dto);
+    return this.billingService.renewSubscription(
+      id,
+      dto,
+      currentUser.sub,
+    );
   }
 
   @Get('subscriptions/:id')

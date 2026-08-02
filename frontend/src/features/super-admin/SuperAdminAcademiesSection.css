@@ -1,0 +1,357 @@
+.sacademy-section {
+  margin-top: 22px;
+}
+
+.sacademy-toolbar {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sacademy-toolbar h2 {
+  margin: 0;
+  color: #173574;
+}
+
+.sacademy-toolbar p {
+  margin: 6px 0 0;
+  color: #79859a;
+}
+
+.sacademy-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.sacademy-actions button,
+.sacademy-form-buttons button,
+.sacademy-row-actions button {
+  min-height: 41px;
+  padding: 0 14px;
+  border-radius: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.sacademy-actions .primary,
+.sacademy-form-buttons .primary {
+  color: #fff;
+  border: 0;
+  background: #3565eb;
+}
+
+.sacademy-actions .secondary,
+.sacademy-form-buttons .secondary {
+  color: #3159c8;
+  border: 1px solid #d5def2;
+  background: #fff;
+}
+
+.sacademy-message {
+  margin-top: 17px;
+  padding: 14px 17px;
+  border-radius: 12px;
+}
+
+.sacademy-message.error {
+  color: #a31237;
+  border: 1px solid #fecdd3;
+  background: #fff1f2;
+}
+
+.sacademy-message.success {
+  color: #047857;
+  border: 1px solid #a7f3d0;
+  background: #ecfdf5;
+}
+
+.sacademy-panel {
+  margin-top: 20px;
+  padding: 23px;
+  border: 1px solid #dfe6f1;
+  border-radius: 19px;
+  background: #fff;
+  box-shadow: 0 16px 42px rgba(24, 43, 82, 0.08);
+}
+
+.sacademy-panel-head {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-bottom: 17px;
+  border-bottom: 1px solid #edf0f5;
+}
+
+.sacademy-panel-head h3 {
+  margin: 0;
+  color: #173574;
+}
+
+.sacademy-panel-head p {
+  margin: 6px 0 0;
+  color: #7b869a;
+}
+
+.sacademy-panel-head .close {
+  width: 40px;
+  height: 40px;
+  color: #536078;
+  border: 0;
+  border-radius: 11px;
+  background: #f0f3f8;
+  font-size: 25px;
+  cursor: pointer;
+}
+
+.sacademy-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.sacademy-form label {
+  display: grid;
+  gap: 8px;
+  color: #465269;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.sacademy-form label.wide {
+  grid-column: span 2;
+}
+
+.sacademy-form input,
+.sacademy-form select {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 13px;
+  border: 1px solid #dce3ee;
+  border-radius: 11px;
+  outline: none;
+  background: #fff;
+}
+
+.sacademy-form input:focus,
+.sacademy-form select:focus {
+  border-color: #3565eb;
+  box-shadow: 0 0 0 4px rgba(53, 101, 235, 0.11);
+}
+
+.sacademy-form-buttons {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 10px;
+}
+
+.sacademy-search {
+  width: min(520px, 100%);
+  min-height: 46px;
+  margin-top: 20px;
+  padding: 0 14px;
+  border: 1px solid #dce3ee;
+  border-radius: 11px;
+  outline: none;
+}
+
+.sacademy-table-wrap {
+  margin-top: 16px;
+  overflow-x: auto;
+  border: 1px solid #e1e7f0;
+  border-radius: 15px;
+  background: #fff;
+}
+
+.sacademy-table-wrap table {
+  width: 100%;
+  min-width: 1180px;
+  border-collapse: collapse;
+}
+
+.sacademy-table-wrap th,
+.sacademy-table-wrap td {
+  padding: 14px;
+  text-align: right;
+  border-bottom: 1px solid #edf0f5;
+  vertical-align: middle;
+}
+
+.sacademy-table-wrap th {
+  color: #59657a;
+  background: #f8faff;
+  font-size: 13px;
+}
+
+.sacademy-name {
+  display: flex;
+  gap: 11px;
+  align-items: center;
+}
+
+.sacademy-name > span {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  place-items: center;
+  color: #fff;
+  border-radius: 12px;
+  background: #3565eb;
+  font-size: 19px;
+  font-weight: 900;
+}
+
+.sacademy-name strong,
+.sacademy-name small {
+  display: block;
+}
+
+.sacademy-name small {
+  margin-top: 4px;
+  color: #8a95a8;
+}
+
+.sacademy-status {
+  display: inline-flex;
+  min-height: 29px;
+  align-items: center;
+  padding: 0 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.sacademy-status.active {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.sacademy-status.trial {
+  color: #a16207;
+  background: #fef3c7;
+}
+
+.sacademy-status.suspended {
+  color: #be123c;
+  background: #ffe4e6;
+}
+
+.sacademy-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sacademy-row-actions button {
+  min-height: 35px;
+  padding: 0 10px;
+  color: #3159c8;
+  border: 1px solid #d9e2f5;
+  background: #f3f6ff;
+  font-size: 12px;
+}
+
+.sacademy-row-actions button.danger {
+  color: #be123c;
+  border-color: #fecdd3;
+  background: #fff1f2;
+}
+
+.sacademy-info-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  gap: 13px;
+  margin-top: 20px;
+}
+
+.sacademy-info-grid article,
+.sacademy-mini-grid article {
+  padding: 16px;
+  border: 1px solid #e4e9f2;
+  border-radius: 14px;
+  background: #fafcff;
+}
+
+.sacademy-info-grid span,
+.sacademy-info-grid strong,
+.sacademy-mini-grid strong,
+.sacademy-mini-grid small {
+  display: block;
+}
+
+.sacademy-info-grid span {
+  color: #7a869b;
+  font-size: 12px;
+}
+
+.sacademy-info-grid strong {
+  margin-top: 8px;
+  color: #173574;
+}
+
+.sacademy-details h4 {
+  margin: 24px 0 12px;
+  color: #173574;
+}
+
+.sacademy-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.sacademy-mini-grid small {
+  margin-top: 5px;
+  color: #7f8a9e;
+}
+
+.sacademy-empty {
+  padding: 50px 20px;
+  color: #7d879b;
+  text-align: center;
+  font-weight: 800;
+}
+
+.sacademy-loading {
+  position: fixed;
+  left: 24px;
+  bottom: 24px;
+  z-index: 30;
+  padding: 13px 17px;
+  color: #fff;
+  border-radius: 12px;
+  background: #173574;
+}
+
+@media (max-width: 1050px) {
+  .sacademy-form {
+    grid-template-columns: repeat(2, minmax(170px, 1fr));
+  }
+
+  .sacademy-info-grid,
+  .sacademy-mini-grid {
+    grid-template-columns: repeat(2, minmax(160px, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .sacademy-toolbar,
+  .sacademy-actions,
+  .sacademy-form-buttons {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .sacademy-form,
+  .sacademy-info-grid,
+  .sacademy-mini-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sacademy-form label.wide {
+    grid-column: auto;
+  }
+}

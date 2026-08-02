@@ -18,7 +18,9 @@ function getAllowedOrigins(): Set<string> {
 
   const localFrontendUrls = [
     'http://localhost:5173',
+      'https://localhost:5173',
     'http://127.0.0.1:5173',
+      'https://127.0.0.1:5173',
     'http://localhost:5174',
     'http://127.0.0.1:5174',
   ];
@@ -53,16 +55,36 @@ async function bootstrap(): Promise<void> {
    * المتصفح يطلب favicon.ico تلقائيًا عند فتح رابط الـBackend.
    * نرجع 204 بدل ظهور خطأ 404 في Console.
    */
-  app.use(
-    '/favicon.ico',
-    (_request: Request, response: Response): void => {
-      response.status(204).end();
-    },
-  );
+  app.use('/favicon.ico', (_request: Request, response: Response): void => {
+    response.status(204).end();
+  });
 
   app.setGlobalPrefix('api');
 
-  const allowedOrigins = getAllowedOrigins();
+  // HAYMCLUB_CORS_SET_START
+  const allowedOrigins = new Set<string>(
+    [
+      ...Array.from(getAllowedOrigins()),
+
+      process.env.FRONTEND_URL?.trim().replace(/\/$/, ''),
+
+      process.env.CODESPACE_NAME
+        ? 'https://' + process.env.CODESPACE_NAME + '-5173.app.github.dev'
+        : undefined,
+
+      'https://super-duper-space-memory-qvqgw45pv5p5fx76-5173.app.github.dev',
+
+      'http://localhost:5173',
+      'https://localhost:5173',
+      'http://localhost:5174',
+      'http://127.0.0.1:5173',
+      'https://127.0.0.1:5173',
+      'http://127.0.0.1:5174',
+    ].filter(
+      (value): value is string => typeof value === 'string' && value.length > 0,
+    ),
+  );
+  // HAYMCLUB_CORS_SET_END
 
   logger.log(
     `Allowed frontend origins: ${Array.from(allowedOrigins).join(', ')}`,
@@ -92,15 +114,7 @@ async function bootstrap(): Promise<void> {
 
     credentials: true,
 
-    methods: [
-      'GET',
-      'HEAD',
-      'POST',
-      'PUT',
-      'PATCH',
-      'DELETE',
-      'OPTIONS',
-    ],
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
 
     allowedHeaders: [
       'Content-Type',
@@ -134,9 +148,7 @@ async function bootstrap(): Promise<void> {
   const port = Number(process.env.PORT ?? 3000);
 
   if (!Number.isInteger(port) || port <= 0) {
-    throw new Error(
-      `Invalid PORT value: ${process.env.PORT ?? 'undefined'}`,
-    );
+    throw new Error(`Invalid PORT value: ${process.env.PORT ?? 'undefined'}`);
   }
 
   await app.listen(port, '0.0.0.0');

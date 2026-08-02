@@ -16,3 +16,18 @@ frontend/.env
 .DS_Store
 coverage/
 start-haymclub.sh
+# Local backups and generated files
+project-backups/
+*.bak
+*.bak-*
+*.bak.*
+*.backup
+*.backup-*
+*.orig
+*.rej
+*.tsbuildinfo
+**/dist/
+**/coverage/
+# Private environment files
+.env.*
+!.env.example
