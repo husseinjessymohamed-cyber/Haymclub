@@ -23,6 +23,7 @@ import { AttendancePage } from "./features/attendance/AttendancePage";
 import { BillingPage } from "./features/billing/BillingPage";
 import { GroupsPage } from "./features/groups/GroupsPage";
 import { PortalLinksPage } from "./features/portal/PortalLinksPage";
+import { PwaInstallPrompt } from "./features/pwa/PwaInstallPrompt";
 import { AcademyRequestsPage } from "./features/workflow/AcademyRequestsPage";
 import { ReportsPage } from "./features/reports/ReportsPage";
 import { SettingsPage } from "./features/settings/SettingsPage";
@@ -215,6 +216,7 @@ createRoot(rootElement).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <HaymclubRootRouter />
+      <PwaInstallPrompt />
     </QueryClientProvider>
   </StrictMode>,
 );
