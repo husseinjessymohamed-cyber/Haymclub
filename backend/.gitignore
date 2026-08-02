@@ -1,0 +1,5 @@
+
+# Local uploaded files
+uploads/
+.env.local
+smtp.private.env

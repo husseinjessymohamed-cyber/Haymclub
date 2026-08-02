@@ -177,19 +177,62 @@ export class UsersService {
     return this.toProfile(user);
   }
 
-  async findByEmailWithPassword(email: string): Promise<User | null> {
+  async findByEmailWithPassword(
+    emailOrPhone: string,
+  ): Promise<User | null> {
+    const identifier =
+      emailOrPhone.trim();
+
+    const normalizedPhone =
+      identifier.replace(/\\D/g, '');
+
     return this.usersRepository
       .createQueryBuilder('user')
       .addSelect('user.passwordHash')
-      .leftJoinAndSelect('user.memberships', 'membership')
-      .leftJoinAndSelect('membership.academy', 'academy')
-      .leftJoinAndSelect('membership.branch', 'branch')
-      .where('LOWER(user.email) = LOWER(:email)', {
-        email: email.trim(),
-      })
-      .andWhere('user.deletedAt IS NULL')
-      .orderBy('membership.isPrimary', 'DESC')
-      .addOrderBy('membership.createdAt', 'ASC')
+      .leftJoinAndSelect(
+        'user.memberships',
+        'membership',
+      )
+      .leftJoinAndSelect(
+        'membership.academy',
+        'academy',
+      )
+      .leftJoinAndSelect(
+        'membership.branch',
+        'branch',
+      )
+      .where(
+        `
+          LOWER(user.email) =
+            LOWER(:identifier)
+          OR
+          (
+            :normalizedPhone <> ''
+            AND
+            regexp_replace(
+              COALESCE(user.phone, ''),
+              '[^0-9]',
+              '',
+              'g'
+            ) = :normalizedPhone
+          )
+        `,
+        {
+          identifier,
+          normalizedPhone,
+        },
+      )
+      .andWhere(
+        'user.deletedAt IS NULL',
+      )
+      .orderBy(
+        'membership.isPrimary',
+        'DESC',
+      )
+      .addOrderBy(
+        'membership.createdAt',
+        'ASC',
+      )
       .getOne();
   }
 

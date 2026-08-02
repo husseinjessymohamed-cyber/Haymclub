@@ -17,6 +17,22 @@ import type {
   ClientPortalTrainee,
 } from '../../types/portal';
 
+import {
+  ClientTopTenPanel,
+} from '../rankings/ClientTopTenPanel';
+
+import {
+  ClientGalleryPanel,
+} from '../gallery/ClientGalleryPanel';
+
+import {
+  ClientNotificationsPanel,
+} from '../notifications/ClientNotificationsPanel';
+
+
+
+
+import { ClientFeedbackPanel } from '../workflow/ClientFeedbackPanel';
 import './ClientPortalPage.css';
 
 interface ClientPortalPageProps {
@@ -571,6 +587,16 @@ export function ClientPortalPage({
               </div>
             </div>
           </section>
+
+          {/* HAYMCLUB_CLIENT_NOTIFICATIONS_PANEL */}
+          <ClientNotificationsPanel />
+
+          <ClientFeedbackPanel />
+
+
+          <ClientGalleryPanel />
+
+          <ClientTopTenPanel />
 
           <section className="client-portal-cards">
             <article>

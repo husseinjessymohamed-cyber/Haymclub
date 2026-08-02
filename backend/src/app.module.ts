@@ -1,3 +1,4 @@
+import './config/load-env';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
@@ -20,8 +21,36 @@ import { TrainingGroupsModule } from './training-groups/training-groups.module';
 import { TrainingProgramsModule } from './training-programs/training-programs.module';
 import { UsersModule } from './users/users.module';
 
+import { SuperAdminModule } from './super-admin/super-admin.module';
+
+import { SuperAdminSaasModule } from './super-admin-saas/super-admin-saas.module';
+
+import { SuperAdminManagementModule } from './super-admin-management/super-admin-management.module';
+
+import { SuperAdminAcademiesModule } from './super-admin-academies/super-admin-academies.module';
+
+import { SuperAdminAcademyManagementModule } from './super-admin-academy-management/super-admin-academy-management.module';
+
+import { UploadsModule } from './uploads/uploads.module';
+import { PasswordResetModule } from './password-reset/password-reset.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { GalleryModule } from './gallery/gallery.module';
+import { RankingsModule } from './rankings/rankings.module';
+import { WorkflowModule } from './workflow/workflow.module';
+
 @Module({
   imports: [
+    WorkflowModule,
+    RankingsModule,
+    GalleryModule,
+    NotificationsModule,
+    PasswordResetModule,
+    UploadsModule,
+    SuperAdminAcademyManagementModule,
+    SuperAdminAcademiesModule,
+    SuperAdminManagementModule,
+    SuperAdminSaasModule,
+    SuperAdminModule,
     ConfigModule.forRoot({
       isGlobal: true,
       cache: true,
@@ -30,7 +59,7 @@ import { UsersModule } from './users/users.module';
       envFilePath: ['.env.local', '.env'],
 
       // يسمح باستخدام متغير داخل متغير مثل:
-      // DATABASE_URL=postgres://${DB_USERNAME}:${DB_PASSWORD}@...
+      // يمكن تكوين DATABASE_URL باستخدام متغيرات DB_*
       expandVariables: true,
     }),
 

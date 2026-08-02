@@ -2248,7 +2248,7 @@ export function BillingPage({
                     required
                     minLength={2}
                     maxLength={60}
-                    pattern="[A-Za-z0-9_-]+"
+                    pattern="(?:[A-Za-z0-9_]|-)+"
                     value={planForm.code}
                     onChange={(event) =>
                       setPlanForm(

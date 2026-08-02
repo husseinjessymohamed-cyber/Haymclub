@@ -1018,34 +1018,6 @@ export class BillingService {
     );
   }
 
-  private async normalizeSubscriptionStatus(
-    subscription: TraineeSubscription,
-  ): Promise<void> {
-    const today = this.today();
-
-    let nextStatus = subscription.status;
-
-    if (
-      (subscription.status === TraineeSubscriptionStatus.PENDING ||
-        subscription.status === TraineeSubscriptionStatus.ACTIVE) &&
-      subscription.endDate < today
-    ) {
-      nextStatus = TraineeSubscriptionStatus.EXPIRED;
-    } else if (
-      subscription.status === TraineeSubscriptionStatus.PENDING &&
-      subscription.startDate <= today &&
-      subscription.endDate >= today
-    ) {
-      nextStatus = TraineeSubscriptionStatus.ACTIVE;
-    }
-
-    if (nextStatus !== subscription.status) {
-      subscription.status = nextStatus;
-
-      await this.subscriptionsRepository.save(subscription);
-    }
-  }
-
   private today(): string {
     return new Date().toISOString().slice(0, 10);
   }

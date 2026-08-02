@@ -895,3 +895,208 @@ button.danger {
   color: #55627c;
   font-weight: 700;
 }
+
+/* =========================================================
+   Renewal Modal Polish
+   ========================================================= */
+
+.billing-page [role='dialog'],
+.billing-page .billing-modal,
+.billing-page .billing-modal__content,
+.billing-page .modal-content {
+  width: min(980px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.18);
+  padding: 24px;
+}
+
+/* عنوان المودال */
+.billing-page [role='dialog'] h2,
+.billing-page [role='dialog'] h3,
+.billing-page .billing-modal h2,
+.billing-page .billing-modal h3 {
+  margin: 0 0 18px;
+  font-size: 28px;
+  line-height: 1.2;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+/* أي فورم داخل نافذة التجديد */
+.billing-page [role='dialog'] form,
+.billing-page .billing-modal form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 18px;
+  align-items: start;
+}
+
+/* كل عنصر داخل الجريد */
+.billing-page [role='dialog'] form > *,
+.billing-page .billing-modal form > * {
+  min-width: 0;
+}
+
+/* الحقول */
+.billing-page [role='dialog'] label,
+.billing-page .billing-modal label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.billing-page [role='dialog'] input,
+.billing-page [role='dialog'] select,
+.billing-page [role='dialog'] textarea,
+.billing-page .billing-modal input,
+.billing-page .billing-modal select,
+.billing-page .billing-modal textarea {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  background: #fff;
+  font-size: 15px;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+}
+
+.billing-page [role='dialog'] input:focus,
+.billing-page [role='dialog'] select:focus,
+.billing-page [role='dialog'] textarea:focus,
+.billing-page .billing-modal input:focus,
+.billing-page .billing-modal select:focus,
+.billing-page .billing-modal textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+/* الحقول الطويلة أو الأقسام المهمة بعرض كامل */
+.billing-page [role='dialog'] textarea,
+.billing-page .billing-modal textarea {
+  min-height: 110px;
+  resize: vertical;
+  grid-column: 1 / -1;
+}
+
+/* أي بلوك ملخص / تنبيه / ملاحظات */
+.billing-page [role='dialog'] .summary,
+.billing-page [role='dialog'] .renewal-summary,
+.billing-page [role='dialog'] .billing-summary,
+.billing-page [role='dialog'] .payment-summary,
+.billing-page .billing-modal .summary,
+.billing-page .billing-modal .renewal-summary,
+.billing-page .billing-modal .billing-summary,
+.billing-page .billing-modal .payment-summary {
+  grid-column: 1 / -1;
+  background: linear-gradient(180deg, #f8fbff 0%, #eef4ff 100%);
+  border: 1px solid #dbeafe;
+  border-radius: 18px;
+  padding: 18px 20px;
+  margin-top: 4px;
+}
+
+/* لو فيه حقول لازم تاخد عرض كامل */
+.billing-page [role='dialog'] .full-width,
+.billing-page [role='dialog'] .span-2,
+.billing-page .billing-modal .full-width,
+.billing-page .billing-modal .span-2 {
+  grid-column: 1 / -1;
+}
+
+/* الأزرار */
+.billing-page [role='dialog'] .modal-actions,
+.billing-page [role='dialog'] .form-actions,
+.billing-page [role='dialog'] .billing-modal__actions,
+.billing-page .billing-modal .modal-actions,
+.billing-page .billing-modal .form-actions,
+.billing-page .billing-modal .billing-modal__actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.billing-page [role='dialog'] button,
+.billing-page .billing-modal button {
+  min-height: 46px;
+  border-radius: 14px;
+  padding: 0 18px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+/* تحسين المسافات بين الأقسام */
+.billing-page [role='dialog'] hr,
+.billing-page .billing-modal hr {
+  grid-column: 1 / -1;
+  border: 0;
+  border-top: 1px solid #e2e8f0;
+  margin: 4px 0;
+}
+
+/* الشاشات الصغيرة */
+@media (max-width: 900px) {
+  .billing-page [role='dialog'],
+  .billing-page .billing-modal,
+  .billing-page .billing-modal__content,
+  .billing-page .modal-content {
+    width: calc(100vw - 20px);
+    padding: 18px;
+    border-radius: 18px;
+  }
+
+  .billing-page [role='dialog'] form,
+  .billing-page .billing-modal form {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .billing-page [role='dialog'] textarea,
+  .billing-page .billing-modal textarea,
+  .billing-page [role='dialog'] .summary,
+  .billing-page [role='dialog'] .renewal-summary,
+  .billing-page [role='dialog'] .billing-summary,
+  .billing-page [role='dialog'] .payment-summary,
+  .billing-page .billing-modal .summary,
+  .billing-page .billing-modal .renewal-summary,
+  .billing-page .billing-modal .billing-summary,
+  .billing-page .billing-modal .payment-summary,
+  .billing-page [role='dialog'] .modal-actions,
+  .billing-page [role='dialog'] .form-actions,
+  .billing-page [role='dialog'] .billing-modal__actions,
+  .billing-page .billing-modal .modal-actions,
+  .billing-page .billing-modal .form-actions,
+  .billing-page .billing-modal .billing-modal__actions {
+    grid-column: auto;
+  }
+
+  .billing-page [role='dialog'] .modal-actions,
+  .billing-page [role='dialog'] .form-actions,
+  .billing-page [role='dialog'] .billing-modal__actions,
+  .billing-page .billing-modal .modal-actions,
+  .billing-page .billing-modal .form-actions,
+  .billing-page .billing-modal .billing-modal__actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .billing-page [role='dialog'] button,
+  .billing-page .billing-modal button {
+    width: 100%;
+  }
+}
+

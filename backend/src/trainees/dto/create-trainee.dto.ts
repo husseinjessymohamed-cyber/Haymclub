@@ -57,6 +57,17 @@ export class CreateTraineeDto {
 
   @IsOptional()
   @IsString()
+  @Matches(
+    /^(\/api\/uploads\/trainee-photo\/[A-Za-z0-9._-]+|https?:\/\/\S+)$/,
+    {
+      message: 'profileImageUrl must be a valid uploaded image URL',
+    },
+  )
+  @MaxLength(500)
+  profileImageUrl?: string;
+
+  @IsOptional()
+  @IsString()
   @MaxLength(2000)
   medicalNotes?: string;
 

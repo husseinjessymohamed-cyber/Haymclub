@@ -36,12 +36,6 @@ export class TraineesService {
     @InjectRepository(Trainee)
     private readonly traineesRepository: Repository<Trainee>,
 
-    @InjectRepository(Guardian)
-    private readonly guardiansRepository: Repository<Guardian>,
-
-    @InjectRepository(TraineeGuardian)
-    private readonly traineeGuardiansRepository: Repository<TraineeGuardian>,
-
     @InjectRepository(GroupEnrollment)
     private readonly enrollmentsRepository: Repository<GroupEnrollment>,
 
@@ -77,6 +71,7 @@ export class TraineesService {
           gender: dto.gender,
           phone: dto.phone?.trim() || null,
           email: dto.email?.trim().toLowerCase() || null,
+          profileImageUrl: dto.profileImageUrl?.trim() || null,
           medicalNotes: dto.medicalNotes?.trim() || null,
           emergencyNotes: dto.emergencyNotes?.trim() || null,
           status: dto.status ?? TraineeStatus.ACTIVE,
@@ -209,6 +204,11 @@ export class TraineesService {
         dto.email !== undefined
           ? dto.email.trim().toLowerCase() || null
           : trainee.email,
+
+      profileImageUrl:
+        dto.profileImageUrl !== undefined
+          ? dto.profileImageUrl.trim() || null
+          : trainee.profileImageUrl,
 
       medicalNotes:
         dto.medicalNotes !== undefined

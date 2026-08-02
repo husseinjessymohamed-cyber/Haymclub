@@ -1,0 +1,271 @@
+.notifications-page {
+  display: grid;
+  gap: 24px;
+}
+
+.notifications-header,
+.notification-compose,
+.notification-history,
+.client-notifications-panel {
+  border: 1px solid #e5eaf3;
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow:
+    0 14px 35px
+    rgba(24, 38, 72, 0.07);
+}
+
+.notifications-header {
+  padding: 26px;
+}
+
+.notifications-header p,
+.notification-history header p,
+.client-notifications-panel header p {
+  margin: 0 0 5px;
+  color: #4166df;
+  font-weight: 800;
+}
+
+.notifications-header h1,
+.notifications-header span,
+.notification-history h2,
+.client-notifications-panel h2 {
+  margin: 0;
+}
+
+.notifications-header span {
+  display: block;
+  margin-top: 10px;
+  color: #71809e;
+}
+
+.notifications-layout {
+  display: grid;
+  grid-template-columns:
+    minmax(290px, 0.85fr)
+    minmax(360px, 1.4fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.notification-compose,
+.notification-history,
+.client-notifications-panel {
+  padding: 24px;
+}
+
+.notification-compose {
+  display: grid;
+  gap: 18px;
+}
+
+.notification-compose h2 {
+  margin: 0;
+}
+
+.notification-compose label {
+  display: grid;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.notification-compose input,
+.notification-compose textarea,
+.notification-compose select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 13px 14px;
+  border: 1px solid #dce3f0;
+  border-radius: 12px;
+  outline: none;
+  font: inherit;
+  background: #fbfcff;
+}
+
+.notification-compose textarea {
+  resize: vertical;
+}
+
+.notification-compose input:focus,
+.notification-compose textarea:focus,
+.notification-compose select:focus {
+  border-color: #4166df;
+  box-shadow:
+    0 0 0 4px
+    rgba(65, 102, 223, 0.11);
+}
+
+.notification-compose > button {
+  min-height: 49px;
+  border: 0;
+  border-radius: 12px;
+  cursor: pointer;
+  color: #ffffff;
+  font: inherit;
+  font-weight: 800;
+  background:
+    linear-gradient(
+      135deg,
+      #416aec,
+      #294fc6
+    );
+}
+
+.notification-compose > button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.notification-history > header,
+.client-notifications-panel > header {
+  display: flex;
+  align-items: center;
+  justify-content:
+    space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.notification-history > header strong,
+.client-notifications-panel > header strong {
+  padding: 8px 12px;
+  border-radius: 999px;
+  color: #3157ce;
+  background: #eef3ff;
+}
+
+.notification-list,
+.client-notification-list {
+  display: grid;
+  gap: 14px;
+}
+
+.notification-list article {
+  padding: 18px;
+  border: 1px solid #e5eaf3;
+  border-radius: 15px;
+  background: #fbfcff;
+}
+
+.notification-item-head {
+  display: flex;
+  align-items: center;
+  justify-content:
+    space-between;
+  gap: 12px;
+}
+
+.notification-item-head span {
+  padding: 5px 9px;
+  border-radius: 999px;
+  color: #3157ce;
+  font-size: 12px;
+  font-weight: 800;
+  background: #edf2ff;
+}
+
+.notification-item-head time,
+.client-notification time {
+  color: #8995aa;
+  font-size: 12px;
+}
+
+.notification-list h3 {
+  margin: 14px 0 7px;
+}
+
+.notification-list article > p {
+  margin: 0;
+  color: #5d6980;
+  line-height: 1.8;
+  white-space: pre-wrap;
+}
+
+.notification-delete {
+  margin-top: 14px;
+  padding: 7px 12px;
+  border: 1px solid #ffccd2;
+  border-radius: 9px;
+  cursor: pointer;
+  color: #c83445;
+  background: #fff3f5;
+}
+
+.notification-error,
+.notification-success,
+.notification-state {
+  padding: 13px;
+  border-radius: 11px;
+  line-height: 1.7;
+}
+
+.notification-error {
+  color: #c83445;
+  background: #fff0f2;
+}
+
+.notification-success {
+  color: #177340;
+  background: #edfbf3;
+}
+
+.notification-state {
+  color: #68758d;
+  text-align: center;
+  background: #f7f9fd;
+}
+
+.client-notification {
+  position: relative;
+  width: 100%;
+  padding: 17px;
+  border: 1px solid #e3e8f2;
+  border-radius: 14px;
+  cursor: pointer;
+  text-align: right;
+  font: inherit;
+  background: #ffffff;
+}
+
+.client-notification.unread {
+  border-color: #9db4ff;
+  background: #f2f6ff;
+}
+
+.client-notification > div {
+  display: flex;
+  align-items: center;
+  justify-content:
+    space-between;
+  gap: 12px;
+}
+
+.client-notification h3,
+.client-notification p {
+  margin: 0;
+}
+
+.client-notification p {
+  margin-top: 9px;
+  color: #58657c;
+  line-height: 1.75;
+  white-space: pre-wrap;
+}
+
+.client-notification > span {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  color: #3157ce;
+  font-size: 12px;
+  font-weight: 800;
+  background: #dfe8ff;
+}
+
+@media (max-width: 900px) {
+  .notifications-layout {
+    grid-template-columns: 1fr;
+  }
+}

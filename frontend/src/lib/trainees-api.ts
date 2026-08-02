@@ -10,6 +10,15 @@ import type {
   UpdateTraineeInput,
 } from '../types/trainees';
 
+export interface UploadTraineePhotoResult {
+  success: boolean;
+  message: string;
+  filename: string;
+  url: string;
+  size: number;
+  mimeType: string;
+}
+
 function unwrapResponse<T>(data: unknown): T {
   if (
     typeof data === 'object' &&
@@ -151,6 +160,28 @@ export async function enrollTraineeInGroup(
   );
 
   return unwrapResponse<unknown>(
+    response.data,
+  );
+}
+
+export async function uploadTraineePhoto(
+  file: File,
+): Promise<UploadTraineePhotoResult> {
+  const formData = new FormData();
+
+  formData.append('file', file);
+
+  const response = await api.post(
+    '/uploads/trainee-photo',
+    formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    },
+  );
+
+  return unwrapResponse<UploadTraineePhotoResult>(
     response.data,
   );
 }

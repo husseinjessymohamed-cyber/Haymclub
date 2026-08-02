@@ -107,6 +107,14 @@ export class Trainee extends BaseEntity {
   email: string | null;
 
   @Column({
+    name: 'profile_image_url',
+    type: 'varchar',
+    length: 500,
+    nullable: true,
+  })
+  profileImageUrl: string | null;
+
+  @Column({
     name: 'medical_notes',
     type: 'text',
     nullable: true,

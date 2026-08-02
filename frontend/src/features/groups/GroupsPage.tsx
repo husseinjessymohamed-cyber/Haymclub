@@ -1189,7 +1189,7 @@ export function GroupsPage({
                     required
                     minLength={2}
                     maxLength={60}
-                    pattern="[A-Za-z0-9_-]+"
+                    pattern="(?:[A-Za-z0-9_]|-)+"
                     value={form.code}
                     onChange={(event) => {
                       setForm((current) => ({

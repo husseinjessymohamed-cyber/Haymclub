@@ -151,3 +151,20 @@
     padding: 31px 22px;
   }
 }
+
+/* HAYMCLUB_FORGOT_PASSWORD_LINK */
+.login-forgot-password {
+  display: block;
+  margin: 17px auto 0;
+  padding: 7px 12px;
+  border: 0;
+  cursor: pointer;
+  color: #3159d8;
+  font: inherit;
+  font-weight: 700;
+  background: transparent;
+}
+
+.login-forgot-password:hover {
+  text-decoration: underline;
+}

@@ -14,6 +14,11 @@ import type {
 } from 'react';
 
 import {
+  ForgotPasswordPage,
+  ResetPasswordPage,
+} from './features/auth/PasswordRecoveryPages';
+
+import {
   DashboardPage,
 } from './features/dashboard/DashboardPage';
 
@@ -151,12 +156,12 @@ function LoginPage({
           onSubmit={handleSubmit}
         >
           <label>
-            البريد الإلكتروني
+            البريد الإلكتروني أو رقم الهاتف
 
             <input
-              type="email"
+              type="text"
               value={email}
-              autoComplete="email"
+              autoComplete="username"
               onChange={(event) =>
                 setEmail(
                   event.target.value,
@@ -201,12 +206,40 @@ function LoginPage({
               : 'تسجيل الدخول'}
           </button>
         </form>
+
+        <button
+          type="button"
+          className="login-forgot-password"
+          onClick={() =>
+            window.location.assign(
+              `${window.location.origin}/?forgotPassword=1`,
+            )
+          }
+        >
+          نسيت كلمة المرور؟
+        </button>
       </section>
     </main>
   );
 }
 
 function App() {
+
+  const searchParameters =
+    new URLSearchParams(
+      window.location.search,
+    );
+
+  const resetToken =
+    searchParameters.get(
+      'resetToken',
+    );
+
+  const showForgotPassword =
+    searchParameters.get(
+      'forgotPassword',
+    ) === '1';
+
   const [token, setToken] =
     useState<string | null>(
       () =>
@@ -237,6 +270,21 @@ function App() {
 
     window.location.hash = '';
     setToken(null);
+  }
+
+
+  if (resetToken) {
+    return (
+      <ResetPasswordPage
+        token={resetToken}
+      />
+    );
+  }
+
+  if (showForgotPassword) {
+    return (
+      <ForgotPasswordPage />
+    );
   }
 
   if (!token) {
