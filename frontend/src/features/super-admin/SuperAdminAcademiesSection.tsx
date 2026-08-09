@@ -712,6 +712,40 @@ export function SuperAdminAcademiesSection() {
     }
   };
 
+  const resendManagerPasswordLink = async () => {
+    const email = managerForm.email.trim().toLowerCase();
+
+    if (!email) {
+      setError("أدخل البريد الإلكتروني للمدير أولًا.");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      await request("/auth/forgot-password", {
+        method: "POST",
+        body: JSON.stringify({
+          email,
+        }),
+      });
+
+      setSuccess(
+        "تم إعادة إرسال رابط إنشاء كلمة المرور إلى بريد المدير.",
+      );
+    } catch (sendError) {
+      setError(
+        sendError instanceof Error
+          ? sendError.message
+          : "تعذر إعادة إرسال رابط إنشاء كلمة المرور.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const createManager = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -739,9 +773,26 @@ branchId: managerForm.branchId || undefined,
         }),
       });
 
+      let passwordLinkRequested = true;
+
+      try {
+        await request("/auth/forgot-password", {
+          method: "POST",
+          body: JSON.stringify({
+            email: managerForm.email.trim().toLowerCase(),
+          }),
+        });
+      } catch {
+        passwordLinkRequested = false;
+      }
+
       setPanelMode(null);
 
-      setSuccess("تم إنشاء المدير وإرسال رابط إنشاء كلمة المرور إلى بريده.");
+      setSuccess(
+        passwordLinkRequested
+          ? "تم إنشاء المدير وإرسال رابط إنشاء كلمة المرور إلى بريده."
+          : "تم إنشاء المدير ولكن تعذر إرسال الرابط. يمكنك إعادة الإرسال.",
+      );
 
       await loadAcademies();
     } catch (createError) {
@@ -1173,12 +1224,30 @@ branchId: managerForm.branchId || undefined,
                 <button
                   type="button"
                   className="secondary"
+                  disabled={
+                    loading ||
+                    !managerForm.email.trim()
+                  }
+                  onClick={resendManagerPasswordLink}
+                >
+                  {loading
+                    ? "جاري الإرسال..."
+                    : "إعادة إرسال رابط إنشاء كلمة المرور"}
+                </button>
+
+                <button
+                  type="button"
+                  className="secondary"
                   onClick={closePanel}
                 >
                   إلغاء
                 </button>
 
-                <button type="submit" className="primary" disabled={loading}>
+                <button
+                  type="submit"
+                  className="primary"
+                  disabled={loading}
+                >
                   إنشاء المدير
                 </button>
               </div>
