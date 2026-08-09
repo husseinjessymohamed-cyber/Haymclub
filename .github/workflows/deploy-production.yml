@@ -1,0 +1,71 @@
+name: Deploy Production
+
+on:
+  workflow_run:
+    workflows:
+      - Build and Publish Haymclub Images
+    types:
+      - completed
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: >-
+      ${{
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_branch == 'main'
+      }}
+
+    runs-on: ubuntu-latest
+
+    concurrency:
+      group: haymclub-production
+      cancel-in-progress: false
+
+    steps:
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          printf '%s\n' "${{ secrets.PROD_SSH_PRIVATE_KEY }}" \
+            > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+          printf '%s\n' "${{ secrets.PROD_KNOWN_HOSTS }}" \
+            > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Deploy production
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          ssh \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=15 \
+            "${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}" \
+            "/opt/haymclub/deploy.sh '${{ github.event.workflow_run.head_sha }}'"
+
+      - name: Verify production
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          curl \
+            --fail \
+            --silent \
+            --show-error \
+            --retry 5 \
+            --retry-delay 3 \
+            --retry-all-errors \
+            https://haym.click/api
+
+          echo
+          echo "✅ PRODUCTION_VERIFY=PASS"
