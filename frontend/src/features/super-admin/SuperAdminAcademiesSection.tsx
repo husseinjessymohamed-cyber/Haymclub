@@ -746,6 +746,43 @@ export function SuperAdminAcademiesSection() {
     }
   };
 
+  const resendExistingManagerPasswordLink = async (
+    email?: string | null,
+  ) => {
+    const normalizedEmail =
+      email?.trim().toLowerCase();
+
+    if (!normalizedEmail) {
+      setError("لا يوجد بريد إلكتروني صالح لهذا المدير.");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      await request("/auth/forgot-password", {
+        method: "POST",
+        body: JSON.stringify({
+          email: normalizedEmail,
+        }),
+      });
+
+      setSuccess(
+        "تم إعادة إرسال رابط إنشاء كلمة المرور إلى بريد المدير.",
+      );
+    } catch (sendError) {
+      setError(
+        sendError instanceof Error
+          ? sendError.message
+          : "تعذر إعادة إرسال رابط إنشاء كلمة المرور.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const createManager = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -1390,7 +1427,20 @@ branchId: managerForm.branchId || undefined,
                       <small>{manager.email ?? "—"}</small>
 
                       <small>{manager.role ?? "—"}</small>
-                    </article>
+                                          <button
+                        type="button"
+                        className="secondary"
+                        disabled={loading || !manager.email}
+                        onClick={() =>
+                          void resendExistingManagerPasswordLink(
+                            manager.email,
+                          )
+                        }
+                      >
+                        إعادة إرسال رابط إنشاء كلمة المرور
+                      </button>
+
+</article>
                   ))
                 ) : (
                   <p>لا يوجد مديرون.</p>
