@@ -15,7 +15,6 @@ import {
 import type {
   ClientPortalResponse,
   CreatePortalLinkInput,
-  CreateTraineePortalLinkResponse,
   PortalAdminData,
   PortalLink,
   UpdatePortalLinkInput,
@@ -118,22 +117,6 @@ export async function createPortalLink(
     );
 
   return unwrapResponse<PortalLink>(
-    response.data,
-  );
-}
-
-export async function createTraineePortalLink(
-  traineeId: string,
-): Promise<CreateTraineePortalLinkResponse> {
-  const response =
-    await api.post(
-      '/portal/trainee-links',
-      {
-        traineeId,
-      },
-    );
-
-  return unwrapResponse<CreateTraineePortalLinkResponse>(
     response.data,
   );
 }
@@ -243,4 +226,52 @@ export async function getClientTrainingSchedule(
         '../types/portal'
       ).ClientTrainingSession[]
     : [];
+}
+
+export interface TraineeInvitationActionResponse {
+  message: string;
+  status:
+    | 'NOT_CREATED'
+    | 'PENDING_APPROVAL'
+    | 'INVITATION_SENT'
+    | 'ACTIVE'
+    | 'EXPIRED'
+    | 'REJECTED';
+  email?: string;
+}
+
+export async function approveTraineeInvitation(
+  traineeId: string,
+): Promise<TraineeInvitationActionResponse> {
+  const response = await api.post(
+    `/trainee-invitations/${traineeId}/approve`,
+  );
+
+  return unwrapResponse<TraineeInvitationActionResponse>(
+    response.data,
+  );
+}
+
+export async function rejectTraineeInvitation(
+  traineeId: string,
+): Promise<TraineeInvitationActionResponse> {
+  const response = await api.post(
+    `/trainee-invitations/${traineeId}/reject`,
+  );
+
+  return unwrapResponse<TraineeInvitationActionResponse>(
+    response.data,
+  );
+}
+
+export async function resendTraineeInvitation(
+  traineeId: string,
+): Promise<TraineeInvitationActionResponse> {
+  const response = await api.post(
+    `/trainee-invitations/${traineeId}/resend`,
+  );
+
+  return unwrapResponse<TraineeInvitationActionResponse>(
+    response.data,
+  );
 }

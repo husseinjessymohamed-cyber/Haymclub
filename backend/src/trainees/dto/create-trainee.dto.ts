@@ -50,10 +50,12 @@ export class CreateTraineeDto {
   @MaxLength(30)
   phone?: string;
 
-  @IsOptional()
-  @IsEmail()
+  @IsEmail({}, {
+    message:
+      'يجب إدخال بريد إلكتروني صحيح للمتدرب',
+  })
   @MaxLength(180)
-  email?: string;
+  email: string;
 
   @IsOptional()
   @IsString()

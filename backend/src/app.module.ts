@@ -1,9 +1,18 @@
 import './config/load-env';
+import {
+  StorageModule,
+} from './storage/storage.module';
+
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 
 import { AcademiesModule } from './academies/academies.module';
+
+import {
+  TraineeInvitationsModule,
+} from './trainee-invitations/trainee-invitations.module';
+
 import { AppController } from './app.controller';
 import { AttendanceModule } from './attendance/attendance.module';
 import { AuthModule } from './auth/auth.module';
@@ -40,6 +49,8 @@ import { WorkflowModule } from './workflow/workflow.module';
 
 @Module({
   imports: [
+    StorageModule,
+    TraineeInvitationsModule,
     WorkflowModule,
     RankingsModule,
     GalleryModule,

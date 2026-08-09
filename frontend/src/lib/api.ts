@@ -17,6 +17,24 @@ export const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
+  // لا نرسل أي Bearer token إلى مسارات المصادقة العامة.
+  const requestUrl = config.url ?? "";
+
+  const isPublicAuthRequest = [
+    "/auth/login",
+    "/auth/forgot-password",
+    "/auth/reset-password",
+    "/auth/password-reset",
+  ].some((path) => requestUrl.includes(path));
+
+  if (isPublicAuthRequest) {
+    if (config.headers) {
+      delete config.headers.Authorization;
+    }
+
+    return config;
+  }
+
   // HAYMCLUB_CONTEXT_AUTH_TOKEN
   const tokenKey = window.location.hash.includes("super-admin")
     ? "haymclub_super_admin_token"

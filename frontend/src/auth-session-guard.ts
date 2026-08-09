@@ -1,4 +1,5 @@
 const TOKEN_KEYS = [
+  'haymclub_token',
   'haymclub_auth_token',
   'haymclub_super_admin_token',
   'accessToken',
@@ -96,9 +97,16 @@ function handleUnauthorized(rawUrl: string): void {
 
   clearAuthentication();
 
+  const academyAdminPage =
+    window.location.hash === '#academy' ||
+    window.location.hash.startsWith('#academy?') ||
+    window.location.hash.startsWith('#academy/');
+
   const loginUrl = superAdminPage
     ? `${window.location.origin}/#super-admin`
-    : `${window.location.origin}/`;
+    : academyAdminPage
+      ? `${window.location.origin}/#academy`
+      : `${window.location.origin}/`;
 
   window.setTimeout(() => {
     window.location.replace(loginUrl);
@@ -128,7 +136,11 @@ function installFetchGuard(): void {
     const token = readToken();
     let response: Response;
 
-    if (isApiRequest(rawUrl) && token) {
+    if (
+      isApiRequest(rawUrl) &&
+      !isPublicAuthRequest(rawUrl) &&
+      token
+    ) {
       if (input instanceof Request) {
         const headers = new Headers(input.headers);
 
@@ -200,6 +212,7 @@ function installXhrGuard(): void {
     if (
       token &&
       isApiRequest(rawUrl) &&
+      !isPublicAuthRequest(rawUrl) &&
       !(this as any).__haymclubHasAuthorization
     ) {
       originalSetRequestHeader.call(

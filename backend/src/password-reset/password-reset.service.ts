@@ -345,6 +345,26 @@ export class PasswordResetService {
             token.id,
           ],
         );
+
+
+        await manager.query(
+          `
+            UPDATE trainees
+            SET
+              portal_account_status = 'ACTIVE',
+              portal_invitation_expires_at = NULL,
+              portal_invitation_sent_at = NULL,
+              updated_at = NOW()
+            WHERE id IN (
+              SELECT trainee_id
+              FROM portal_trainee_links
+              WHERE
+                user_id = $1
+                AND deleted_at IS NULL
+            )
+          `,
+          [token.user_id],
+        );
       },
     );
 
@@ -394,12 +414,22 @@ export class PasswordResetService {
       ) ||
       this.configService.get<string>(
         'FRONTEND_URL',
-      ) ||
-      'http://localhost:5173';
+      );
+
+    if (
+      !configuredBaseUrl &&
+      process.env.NODE_ENV === 'production'
+    ) {
+      throw new Error(
+        'PASSWORD_RESET_BASE_URL or FRONTEND_URL is required in production',
+      );
+    }
 
     const baseUrl =
-      configuredBaseUrl
-        .replace(/\/+$/, '');
+      (
+        configuredBaseUrl ||
+        'http://localhost:5173'
+      ).replace(/\/+$/, '');
 
     return (
       `${baseUrl}/?resetToken=` +

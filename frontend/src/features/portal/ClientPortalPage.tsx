@@ -32,9 +32,7 @@ import {
 
 
 
-import {
-  ClientTrainingSchedulePanel,
-} from './ClientTrainingSchedulePanel';
+
 
 import { ClientFeedbackPanel } from '../workflow/ClientFeedbackPanel';
 import './ClientPortalPage.css';
@@ -310,11 +308,14 @@ export function ClientPortalPage({
     selected?.attendance;
 
   const subscriptions =
-    selected
-      ? subscriptionList(selected)
-      : [];
+    selected?.subscriptions?.length
+      ? selected.subscriptions
+      : selected
+        ? subscriptionList(selected)
+        : [];
 
   const activeSubscription =
+    selected?.activeSubscription ??
     subscriptions.find(
       (subscription) =>
         textValue(
@@ -325,7 +326,8 @@ export function ClientPortalPage({
           '',
         ) === 'ACTIVE',
     ) ??
-    subscriptions[0];
+    subscriptions[0] ??
+    null;
 
   const totalPaid =
     subscriptions.reduce<number>(
@@ -354,15 +356,17 @@ export function ClientPortalPage({
     );
 
   const payments =
-    subscriptions.flatMap(
-      (subscription) =>
-        asArray(
-          getPath(
-            subscription,
-            'payments',
-          ),
-        ),
-    );
+    selected?.payments?.length
+      ? selected.payments
+      : subscriptions.flatMap(
+          (subscription) =>
+            asArray(
+              getPath(
+                subscription,
+                'payments',
+              ),
+            ),
+        );
 
   if (query.isPending) {
     return (
@@ -591,13 +595,6 @@ export function ClientPortalPage({
               </div>
             </div>
           </section>
-
-                    <ClientTrainingSchedulePanel
-            traineeId={
-              selected.trainee.id
-            }
-          />
-
 {/* HAYMCLUB_CLIENT_NOTIFICATIONS_PANEL */}
           <ClientNotificationsPanel />
 

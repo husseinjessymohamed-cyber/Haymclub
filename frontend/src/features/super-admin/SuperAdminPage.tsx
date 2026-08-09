@@ -13,7 +13,7 @@ import "./SuperAdminPage.css";
 
 const TOKEN_KEY = "haymclub_super_admin_token";
 
-const DEFAULT_EMAIL = "superadmin@haymclub.com";
+const DEFAULT_EMAIL = "mohamedhusseinabdeen@gmail.com";
 
 type Section =
   | "overview"
@@ -473,6 +473,10 @@ export function SuperAdminPage() {
     setError(null);
 
     try {
+      // تسجيل الدخول يجب ألا يعتمد على أي جلسة قديمة.
+      localStorage.removeItem(TOKEN_KEY);
+      sessionStorage.removeItem(TOKEN_KEY);
+
       const response = await fetch(`${apiBase()}/auth/login`, {
         method: "POST",
 
@@ -490,7 +494,33 @@ export function SuperAdminPage() {
       const raw = await readJson(response);
 
       if (!response.ok) {
-        throw new Error("البريد أو كلمة المرور غير صحيحة.");
+        const record =
+          raw &&
+          typeof raw === "object"
+            ? (raw as Record<string, unknown>)
+            : {};
+
+        const serverMessage =
+          Array.isArray(record.message)
+            ? record.message.join("، ")
+            : typeof record.message === "string"
+              ? record.message
+              : typeof record.error === "string"
+                ? record.error
+                : `فشل تسجيل الدخول برمز ${response.status}`;
+
+        console.error(
+          "SUPER ADMIN LOGIN FAILED",
+          {
+            status: response.status,
+            apiBase: apiBase(),
+            email:
+              email.trim().toLowerCase(),
+            response: raw,
+          },
+        );
+
+        throw new Error(serverMessage);
       }
 
       const result = unwrap<LoginResult>(raw);

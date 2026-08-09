@@ -20,9 +20,9 @@ import { AcademyRole } from '../memberships/entities/academy-membership.entity';
 
 import { FileInterceptor } from '@nestjs/platform-express';
 
-import { diskStorage } from 'multer';
+import { memoryStorage } from 'multer';
 
-import { createReadStream, existsSync, mkdirSync, unlinkSync } from 'node:fs';
+import { createReadStream, existsSync, mkdirSync, unlinkSync, writeFileSync } from 'node:fs';
 
 import { basename, resolve } from 'node:path';
 
@@ -32,6 +32,8 @@ import type { Response } from 'express';
 
 import { DataSource } from 'typeorm';
 import { WorkflowService } from './workflow.service';
+import { StorageService } from '../storage/storage.service';
+
 
 // HAYMCLUB_WORKFLOW_IMAGE_UPLOAD
 const WORKFLOW_ATTACHMENTS_DIRECTORY = resolve(
@@ -63,6 +65,8 @@ export class WorkflowController {
     private readonly workflowService: WorkflowService,
 
     private readonly dataSource: DataSource,
+
+    private readonly storageService: StorageService,
   ) {}
 
   private currentUser(
@@ -217,21 +221,7 @@ export class WorkflowController {
   @Roles(...ALL_ROLES)
   @UseInterceptors(
     FileInterceptor('attachment', {
-      storage: diskStorage({
-        destination: (_request, _file, callback) => {
-          mkdirSync(WORKFLOW_ATTACHMENTS_DIRECTORY, {
-            recursive: true,
-          });
-
-          callback(null, WORKFLOW_ATTACHMENTS_DIRECTORY);
-        },
-
-        filename: (_request, file, callback) => {
-          const extension = WORKFLOW_IMAGE_EXTENSIONS[file.mimetype] ?? '';
-
-          callback(null, `${randomUUID()}${extension}`);
-        },
-      }),
+      storage: memoryStorage(),
 
       limits: {
         fileSize: 5 * 1024 * 1024,
@@ -276,73 +266,238 @@ export class WorkflowController {
     @UploadedFile()
     file?: Express.Multer.File,
   ) {
-    let metadata: Record<string, unknown> = {};
+    let metadata:
+      Record<string, unknown> = {};
 
-    if (body.metadata?.trim()) {
+    if (
+      body.metadata?.trim()
+    ) {
       try {
-        const parsed = JSON.parse(body.metadata);
+        const parsed =
+          JSON.parse(
+            body.metadata,
+          );
 
         if (
-          typeof parsed !== 'object' ||
+          typeof parsed !==
+            'object' ||
           parsed === null ||
-          Array.isArray(parsed)
+          Array.isArray(
+            parsed,
+          )
         ) {
-          throw new Error('Metadata must be an object');
+          throw new Error(
+            'Metadata must be an object',
+          );
         }
 
-        metadata = parsed as Record<string, unknown>;
+        metadata =
+          parsed as Record<
+            string,
+            unknown
+          >;
       } catch {
-        if (file?.path) {
-          try {
-            unlinkSync(file.path);
-          } catch {
-            // Ignore cleanup errors.
-          }
-        }
-
-        throw new BadRequestException('بيانات الطلب المرفقة غير صحيحة.');
+        throw new BadRequestException(
+          'بيانات الطلب المرفقة غير صحيحة.',
+        );
       }
     }
 
+    let stored:
+      {
+        provider:
+          'S3' | 'LOCAL';
+
+        key:
+          string;
+
+        fileName:
+          string;
+
+        url:
+          string | null;
+      } |
+      null = null;
+
     if (file) {
+      const extension =
+        WORKFLOW_IMAGE_EXTENSIONS[
+          file.mimetype
+        ];
+
+      if (!extension) {
+        throw new BadRequestException(
+          'يسمح برفع صور JPG أو PNG أو WEBP فقط.',
+        );
+      }
+
+      if (
+        this.storageService
+          .isS3Enabled()
+      ) {
+        const uploaded =
+          await this.storageService
+            .uploadBuffer({
+              buffer:
+                file.buffer,
+
+              originalName:
+                file.originalname,
+
+              contentType:
+                file.mimetype,
+
+              folder:
+                academyId
+                  ? `workflow-feedback/${academyId}`
+                  : 'workflow-feedback/global',
+            });
+
+        stored = {
+          provider:
+            'S3',
+
+          key:
+            uploaded.key,
+
+          fileName:
+            uploaded.key
+              .split('/')
+              .pop() ??
+            uploaded.key,
+
+          url:
+            uploaded.url,
+        };
+      } else {
+        mkdirSync(
+          WORKFLOW_ATTACHMENTS_DIRECTORY,
+          {
+            recursive: true,
+          },
+        );
+
+        const filename =
+          `${randomUUID()}${extension}`;
+
+        const filePath =
+          resolve(
+            WORKFLOW_ATTACHMENTS_DIRECTORY,
+            filename,
+          );
+
+        writeFileSync(
+          filePath,
+          file.buffer,
+        );
+
+        stored = {
+          provider:
+            'LOCAL',
+
+          key:
+            filename,
+
+          fileName:
+            filename,
+
+          url:
+            null,
+        };
+      }
+
       metadata = {
         ...metadata,
 
         attachment: {
-          fileName: file.filename,
+          storageProvider:
+            stored.provider,
 
-          originalName: file.originalname,
+          storageKey:
+            stored.key,
 
-          mimeType: file.mimetype,
+          storageUrl:
+            stored.url,
 
-          size: file.size,
+          fileName:
+            stored.fileName,
+
+          originalName:
+            file.originalname,
+
+          mimeType:
+            file.mimetype,
+
+          size:
+            file.size,
         },
       };
     }
 
     try {
-      return await this.workflowService.submitFeedback(
-        this.currentUser(userId, academyId, branchId, role),
-        {
-          type: body.type,
+      return await this.workflowService
+        .submitFeedback(
+          this.currentUser(
+            userId,
+            academyId,
+            branchId,
+            role,
+          ),
+          {
+            type:
+              body.type,
 
-          subject: body.subject,
+            subject:
+              body.subject,
 
-          message: body.message,
+            message:
+              body.message,
 
-          entityType: body.entityType,
+            entityType:
+              body.entityType,
 
-          entityId: body.entityId,
+            entityId:
+              body.entityId,
 
-          metadata,
-        },
-      );
+            metadata,
+          },
+        );
     } catch (error) {
-      if (file?.path) {
+      /*
+       * Rollback للملف إذا فشل
+       * حفظ الـ Feedback.
+       */
+      if (stored) {
         try {
-          unlinkSync(file.path);
+          if (
+            stored.provider ===
+              'S3'
+          ) {
+            await this.storageService
+              .deleteObject(
+                stored.key,
+              );
+          } else {
+            const filePath =
+              resolve(
+                WORKFLOW_ATTACHMENTS_DIRECTORY,
+                basename(
+                  stored.key,
+                ),
+              );
+
+            if (
+              existsSync(
+                filePath,
+              )
+            ) {
+              unlinkSync(
+                filePath,
+              );
+            }
+          }
         } catch {
-          // Ignore cleanup errors.
+          // لا نخفي الخطأ الأصلي.
         }
       }
 

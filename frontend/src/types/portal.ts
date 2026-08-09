@@ -115,6 +115,10 @@ export interface ClientPortalTrainee {
   enrollments: unknown[];
   attendance: PortalAttendanceSummary;
   billing: Record<string, unknown>;
+
+  subscriptions: unknown[];
+  activeSubscription: unknown | null;
+  payments: unknown[];
 }
 
 export interface ClientPortalResponse {

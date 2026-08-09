@@ -33,7 +33,7 @@ import {
 } from 'fs';
 
 import {
-  diskStorage,
+  memoryStorage,
 } from 'multer';
 
 import {
@@ -63,6 +63,10 @@ import {
 import {
   GalleryService,
 } from './gallery.service';
+
+import {
+  StorageService,
+} from '../storage/storage.service';
 
 const GALLERY_DIRECTORY =
   join(
@@ -106,6 +110,9 @@ export class GalleryController {
   constructor(
     private readonly galleryService:
       GalleryService,
+
+    private readonly storageService:
+      StorageService,
   ) {}
 
   @Post('upload')
@@ -114,41 +121,7 @@ export class GalleryController {
     FileInterceptor(
       'file',
       {
-        storage: diskStorage({
-          destination: (
-            _request,
-            _file,
-            callback,
-          ) => {
-            mkdirSync(
-              GALLERY_DIRECTORY,
-              {
-                recursive: true,
-              },
-            );
-
-            callback(
-              null,
-              GALLERY_DIRECTORY,
-            );
-          },
-
-          filename: (
-            _request,
-            file,
-            callback,
-          ) => {
-            const extension =
-              MIME_EXTENSIONS[
-                file.mimetype
-              ] ?? '';
-
-            callback(
-              null,
-              `${randomUUID()}${extension}`,
-            );
-          },
-        }),
+        storage: memoryStorage(),
 
         fileFilter: (
           _request,
@@ -245,21 +218,18 @@ export class GalleryController {
     @Res()
     response: Response,
   ): Promise<void> {
-    const {
-      item,
-      filePath,
-    } =
+    const source =
       await this.galleryService
         .findFile(
           id,
           academyId,
         );
 
-    const stats =
-      statSync(filePath);
-
-    const range =
-      request.headers.range;
+    const {
+      item,
+      filePath,
+      s3Key,
+    } = source;
 
     response.setHeader(
       'Content-Type',
@@ -278,6 +248,202 @@ export class GalleryController {
       'private, max-age=3600',
     );
 
+    const range =
+      request.headers.range;
+
+    /*
+     * Amazon S3
+     */
+    if (s3Key) {
+      const metadata =
+        await this.storageService
+          .headObject(
+            s3Key,
+          );
+
+      const totalSize =
+        metadata.ContentLength ??
+        item.size;
+
+      if (
+        item.mediaType ===
+          GalleryMediaType.VIDEO &&
+        range
+      ) {
+        const [
+          startText,
+          endText,
+        ] = range
+          .replace(
+            'bytes=',
+            '',
+          )
+          .split('-');
+
+        const start =
+          Number.parseInt(
+            startText,
+            10,
+          );
+
+        const requestedEnd =
+          endText
+            ? Number.parseInt(
+                endText,
+                10,
+              )
+            : totalSize - 1;
+
+        const end =
+          Math.min(
+            requestedEnd,
+            totalSize - 1,
+          );
+
+        if (
+          Number.isNaN(
+            start,
+          ) ||
+          Number.isNaN(
+            end,
+          ) ||
+          start < 0 ||
+          start > end ||
+          start >= totalSize
+        ) {
+          response
+            .status(416);
+
+          response.setHeader(
+            'Content-Range',
+            `bytes */${totalSize}`,
+          );
+
+          response.end();
+
+          return;
+        }
+
+        const contentLength =
+          end -
+          start +
+          1;
+
+        const object =
+          await this.storageService
+            .getObject(
+              s3Key,
+              `bytes=${start}-${end}`,
+            );
+
+        response.status(
+          206,
+        );
+
+        response.setHeader(
+          'Accept-Ranges',
+          'bytes',
+        );
+
+        response.setHeader(
+          'Content-Range',
+          `bytes ${start}-${end}/${totalSize}`,
+        );
+
+        response.setHeader(
+          'Content-Length',
+          contentLength,
+        );
+
+        if (
+          object.Body &&
+          typeof (
+            object.Body as {
+              pipe?: unknown;
+            }
+          ).pipe ===
+            'function'
+        ) {
+          (
+            object.Body as {
+              pipe:
+                (
+                  destination:
+                    Response,
+                ) => unknown;
+            }
+          ).pipe(
+            response,
+          );
+
+          return;
+        }
+
+        throw new Error(
+          'Unable to stream S3 object',
+        );
+      }
+
+      const object =
+        await this.storageService
+          .getObject(
+            s3Key,
+          );
+
+      if (
+        metadata.ContentLength
+      ) {
+        response.setHeader(
+          'Content-Length',
+          metadata.ContentLength,
+        );
+      }
+
+      if (
+        object.Body &&
+        typeof (
+          object.Body as {
+            pipe?: unknown;
+          }
+        ).pipe ===
+          'function'
+      ) {
+        (
+          object.Body as {
+            pipe:
+              (
+                destination:
+                  Response,
+              ) => unknown;
+          }
+        ).pipe(
+          response,
+        );
+
+        return;
+      }
+
+      throw new Error(
+        'Unable to stream S3 object',
+      );
+    }
+
+    /*
+     * Legacy / Local files
+     */
+    if (!filePath) {
+      response
+        .status(404)
+        .end();
+
+      return;
+    }
+
+    const stats =
+      statSync(
+        filePath,
+      );
+
     if (
       item.mediaType ===
         GalleryMediaType.VIDEO &&
@@ -287,7 +453,10 @@ export class GalleryController {
         startText,
         endText,
       ] = range
-        .replace('bytes=', '')
+        .replace(
+          'bytes=',
+          '',
+        )
         .split('-');
 
       const start =
@@ -304,19 +473,26 @@ export class GalleryController {
             )
           : stats.size - 1;
 
-      const end = Math.min(
-        requestedEnd,
-        stats.size - 1,
-      );
+      const end =
+        Math.min(
+          requestedEnd,
+          stats.size - 1,
+        );
 
       if (
-        Number.isNaN(start) ||
-        Number.isNaN(end) ||
+        Number.isNaN(
+          start,
+        ) ||
+        Number.isNaN(
+          end,
+        ) ||
         start < 0 ||
         start > end ||
         start >= stats.size
       ) {
-        response.status(416);
+        response.status(
+          416,
+        );
 
         response.setHeader(
           'Content-Range',
@@ -324,13 +500,18 @@ export class GalleryController {
         );
 
         response.end();
+
         return;
       }
 
       const contentLength =
-        end - start + 1;
+        end -
+        start +
+        1;
 
-      response.status(206);
+      response.status(
+        206,
+      );
 
       response.setHeader(
         'Accept-Ranges',
@@ -353,7 +534,9 @@ export class GalleryController {
           start,
           end,
         },
-      ).pipe(response);
+      ).pipe(
+        response,
+      );
 
       return;
     }
@@ -363,19 +546,11 @@ export class GalleryController {
       stats.size,
     );
 
-    if (
-      item.mediaType ===
-      GalleryMediaType.VIDEO
-    ) {
-      response.setHeader(
-        'Accept-Ranges',
-        'bytes',
-      );
-    }
-
     createReadStream(
       filePath,
-    ).pipe(response);
+    ).pipe(
+      response,
+    );
   }
 
   @Delete(':id')

@@ -14,8 +14,7 @@ import {
 
 import {
   createPortalLink,
-  createTraineePortalLink,
-  deletePortalLink,
+deletePortalLink,
   getPortalAdminData,
   getPortalApiError,
   updatePortalLink,
@@ -23,7 +22,6 @@ import {
 
 import type {
   PortalRelationship,
-  TraineePortalCredentials,
 } from '../../types/portal';
 
 import type {
@@ -35,6 +33,13 @@ import type {
   UserMembership,
   UserProfile,
 } from '../../types/users';
+
+import {
+  approveTraineeInvitation,
+  rejectTraineeInvitation,
+  resendTraineeInvitation,
+} from '../../lib/portal-api';
+
 
 import './PortalLinksPage.css';
 
@@ -103,6 +108,18 @@ function userName(
   );
 }
 
+
+function traineePortalStatus(
+  trainee: Trainee,
+): string {
+  const value =
+    (trainee as Trainee & {
+      portalAccountStatus?: string;
+    }).portalAccountStatus;
+
+  return value ?? 'NOT_CREATED';
+}
+
 function traineeName(
   trainee?: Trainee,
 ): string {
@@ -111,6 +128,31 @@ function traineeName(
   }
 
   return `${trainee.firstName} ${trainee.lastName}`.trim();
+}
+
+
+const PORTAL_ACCOUNT_STATUS_LABELS:
+Record<string, string> = {
+  NOT_CREATED: 'لا يوجد حساب',
+  PENDING_APPROVAL: 'بانتظار الموافقة',
+  INVITATION_SENT: 'تم إرسال الدعوة',
+  ACTIVE: 'الحساب مفعل',
+  EXPIRED: 'انتهت صلاحية الدعوة',
+  REJECTED: 'تم رفض الطلب',
+};
+
+function portalAccountStatusLabel(
+  value: unknown,
+): string {
+  const status =
+    typeof value === 'string'
+      ? value
+      : 'NOT_CREATED';
+
+  return (
+    PORTAL_ACCOUNT_STATUS_LABELS[status] ??
+    status
+  );
 }
 
 export function PortalLinksPage({
@@ -149,14 +191,6 @@ export function PortalLinksPage({
     selectedTraineeId,
     setSelectedTraineeId,
   ] = useState('');
-
-  const [
-    credentials,
-    setCredentials,
-  ] =
-    useState<TraineePortalCredentials | null>(
-      null,
-    );
 
   const [
     saving,
@@ -453,50 +487,6 @@ export function PortalLinksPage({
     );
   }
 
-  async function createSelectedTraineeLink():
-  Promise<void> {
-    if (
-      !selectedTraineeId
-    ) {
-      setError(
-        'اختر المتدرب أولًا',
-      );
-
-      return;
-    }
-
-    setSaving(true);
-    setError('');
-    setNotice('');
-    setCredentials(null);
-
-    try {
-      const result =
-        await createTraineePortalLink(
-          selectedTraineeId,
-        );
-
-      setCredentials(
-        result.credentials,
-      );
-
-      setNotice(
-        'تم إنشاء حساب المتدرب وربطه بالبوابة بنجاح',
-      );
-
-      await query.refetch();
-    } catch (
-      createError: unknown
-    ) {
-      setError(
-        getPortalApiError(
-          createError,
-        ),
-      );
-    } finally {
-      setSaving(false);
-    }
-  }
 
   async function submitForm(
     event:
@@ -684,6 +674,9 @@ export function PortalLinksPage({
     }
   }
 
+  // Legacy clipboard helper kept temporarily.
+  void copyValue;
+
   if (query.isPending) {
     return (
       <main className="portal-admin-state">
@@ -695,6 +688,98 @@ export function PortalLinksPage({
       </main>
     );
   }
+
+  async function approveSelectedTrainee():
+  Promise<void> {
+    if (!selectedTraineeId) {
+      setError('اختر المتدرب أولًا.');
+      return;
+    }
+
+    setSaving(true);
+    setError('');
+    setNotice('');
+
+    try {
+      const result =
+        await approveTraineeInvitation(
+          selectedTraineeId,
+        );
+
+      setNotice(result.message);
+      setSelectedTraineeId('');
+      await query.refetch();
+    } catch (actionError) {
+      setError(
+        getPortalApiError(actionError),
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function rejectSelectedTrainee():
+  Promise<void> {
+    if (!selectedTraineeId) {
+      setError('اختر المتدرب أولًا.');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      'هل تريد رفض طلب إنشاء حساب هذا المتدرب؟',
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setSaving(true);
+    setError('');
+    setNotice('');
+
+    try {
+      const result =
+        await rejectTraineeInvitation(
+          selectedTraineeId,
+        );
+
+      setNotice(result.message);
+      setSelectedTraineeId('');
+      await query.refetch();
+    } catch (actionError) {
+      setError(
+        getPortalApiError(actionError),
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function resendInvitation(
+    traineeId: string,
+  ): Promise<void> {
+    setSaving(true);
+    setError('');
+    setNotice('');
+
+    try {
+      const result =
+        await resendTraineeInvitation(
+          traineeId,
+        );
+
+      setNotice(result.message);
+      await query.refetch();
+    } catch (actionError) {
+      setError(
+        getPortalApiError(actionError),
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+
 
   if (
     query.isError ||
@@ -748,8 +833,7 @@ export function PortalLinksPage({
           </h1>
 
           <p>
-            اختر المتدرب ثم أنشئ حساب
-            البوابة والرابط بضغطة واحدة.
+            اختر المتدرب، ثم وافق على الطلب لإرسال دعوة إنشاء كلمة المرور إلى بريده الحقيقي.
           </p>
         </div>
 
@@ -771,23 +855,37 @@ export function PortalLinksPage({
               !selectedTraineeId
             }
             onClick={() =>
-              void createSelectedTraineeLink()
+              void approveSelectedTrainee()
             }
           >
-            ＋ إنشاء رابط جديد
+            ✓ موافقة وإرسال الدعوة
           </button>
+
+        <button
+          type="button"
+          className="danger"
+          disabled={
+            saving ||
+            !selectedTraineeId
+          }
+          onClick={() =>
+            void rejectSelectedTrainee()
+          }
+        >
+          رفض الطلب
+        </button>
+
         </div>
       </header>
 
       <section className="portal-trainee-create">
         <div>
           <strong>
-            المتدربون بدون حساب بوابة
+            طلبات حسابات المتدربين
           </strong>
 
           <span>
-            أي متدرب جديد سيظهر تلقائيًا
-            في هذه القائمة.
+            المتدربون أصحاب البريد الحقيقي يظهرون هنا لمراجعة طلب إنشاء الحساب.
           </span>
         </div>
 
@@ -822,6 +920,12 @@ export function PortalLinksPage({
                 {' — '}
                 {trainee.registrationCode}
                 {' — '}
+                {portalAccountStatusLabel(
+                  traineePortalStatus(
+                    trainee,
+                  ),
+                )}
+                {' — '}
                 {trainee.branch?.name ??
                   'الفرع الرئيسي'}
               </option>
@@ -829,21 +933,100 @@ export function PortalLinksPage({
           )}
         </select>
 
-        <button
-          type="button"
-          className="portal-links-primary"
-          disabled={
-            saving ||
-            !selectedTraineeId
+        {selectedTraineeId && (() => {
+          const selected =
+            unlinkedTrainees.find(
+              (item) =>
+                item.id ===
+                selectedTraineeId,
+            );
+
+          const status =
+            selected
+              ? traineePortalStatus(
+                  selected,
+                )
+              : 'NOT_CREATED';
+
+          if (
+            status === 'EXPIRED'
+          ) {
+            return (
+              <button
+                type="button"
+                className="portal-links-primary"
+                disabled={saving}
+                onClick={() =>
+                  void resendInvitation(
+                    selectedTraineeId,
+                  )
+                }
+              >
+                {saving
+                  ? 'جارٍ إعادة الإرسال...'
+                  : 'إعادة إرسال الدعوة'}
+              </button>
+            );
           }
-          onClick={() =>
-            void createSelectedTraineeLink()
+
+          if (
+            status ===
+            'INVITATION_SENT'
+          ) {
+            return (
+              <button
+                type="button"
+                className="portal-links-secondary"
+                disabled
+              >
+                تم إرسال الدعوة
+              </button>
+            );
           }
-        >
-          {saving
-            ? 'جارٍ الإنشاء...'
-            : 'إنشاء رابط المتدرب'}
-        </button>
+
+          if (
+            status === 'ACTIVE'
+          ) {
+            return (
+              <button
+                type="button"
+                className="portal-links-secondary"
+                disabled
+              >
+                الحساب مفعل
+              </button>
+            );
+          }
+
+          if (
+            status === 'REJECTED'
+          ) {
+            return (
+              <button
+                type="button"
+                className="portal-links-secondary"
+                disabled
+              >
+                تم رفض الطلب
+              </button>
+            );
+          }
+
+          return (
+            <button
+              type="button"
+              className="portal-links-primary"
+              disabled={saving}
+              onClick={() =>
+                void approveSelectedTrainee()
+              }
+            >
+              {saving
+                ? 'جارٍ الإرسال...'
+                : 'موافقة وإرسال الدعوة'}
+            </button>
+          );
+        })()}
 
         {unlinkedTrainees.length ===
           0 && (
@@ -853,69 +1036,6 @@ export function PortalLinksPage({
           </p>
         )}
       </section>
-
-      {credentials && (
-        <section className="portal-credentials">
-          <div>
-            <strong>
-              بيانات دخول المتدرب
-            </strong>
-
-            <span>
-              احفظها الآن؛ كلمة المرور
-              تظهر بعد الإنشاء فقط.
-            </span>
-          </div>
-
-          <label>
-            البريد الإلكتروني
-
-            <div>
-              <input
-                readOnly
-                value={
-                  credentials.email
-                }
-              />
-
-              <button
-                type="button"
-                onClick={() =>
-                  void copyValue(
-                    credentials.email,
-                  )
-                }
-              >
-                نسخ
-              </button>
-            </div>
-          </label>
-
-          <label>
-            كلمة المرور المؤقتة
-
-            <div>
-              <input
-                readOnly
-                value={
-                  credentials.password
-                }
-              />
-
-              <button
-                type="button"
-                onClick={() =>
-                  void copyValue(
-                    credentials.password,
-                  )
-                }
-              >
-                نسخ
-              </button>
-            </div>
-          </label>
-        </section>
-      )}
 
       <section className="portal-links-stats">
         <article>
@@ -1014,7 +1134,7 @@ export function PortalLinksPage({
 
           <p>
             اختر متدربًا من القائمة
-            واضغط إنشاء رابط جديد.
+            واختر متدربًا ثم وافق على إرسال دعوة إنشاء الحساب.
           </p>
         </section>
       ) : (
@@ -1106,14 +1226,17 @@ export function PortalLinksPage({
                       <td>
                         <span
                           className={
-                            link.isActive
-                              ? 'portal-status-active'
-                              : 'portal-status-inactive'
+                            link.trainee
+                              ?.portalAccountStatus ===
+                              'ACTIVE'
+                                ? 'portal-status-active'
+                                : 'portal-status-inactive'
                           }
                         >
-                          {link.isActive
-                            ? 'نشط'
-                            : 'متوقف'}
+                          {portalAccountStatusLabel(
+                            link.trainee
+                              ?.portalAccountStatus,
+                          )}
                         </span>
                       </td>
 
@@ -1149,6 +1272,30 @@ export function PortalLinksPage({
                               ? 'إيقاف'
                               : 'تفعيل'}
                           </button>
+
+                          {(
+                            link.trainee
+                              ?.portalAccountStatus ===
+                                'INVITATION_SENT' ||
+                            link.trainee
+                              ?.portalAccountStatus ===
+                                'EXPIRED' ||
+                            link.trainee
+                              ?.portalAccountStatus ===
+                                'REJECTED'
+                          ) && (
+                            <button
+                              type="button"
+                              disabled={saving}
+                              onClick={() =>
+                                void resendInvitation(
+                                  link.traineeId,
+                                )
+                              }
+                            >
+                              إعادة إرسال الدعوة
+                            </button>
+                          )}
 
                           <button
                             type="button"

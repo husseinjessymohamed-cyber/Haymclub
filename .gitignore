@@ -35,3 +35,22 @@ project-backups/
 # Runtime uploaded files
 backend/storage/*
 !backend/storage/.gitkeep
+
+backups/*.dump
+backups/*.sql
+
+# Haymclub local development backups
+*.backup-*
+*.broken-*
+*.corrupted
+*.save
+
+# Local project backups
+project-backups/
+
+# Haymclub local development backups
+*.backup-*
+*.broken-*
+*.corrupted
+*.save
+project-backups/

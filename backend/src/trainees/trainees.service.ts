@@ -21,7 +21,11 @@ import {
 } from './entities/group-enrollment.entity';
 import { Guardian } from './entities/guardian.entity';
 import { TraineeGuardian } from './entities/trainee-guardian.entity';
-import { Trainee, TraineeStatus } from './entities/trainee.entity';
+import {
+  Trainee,
+  TraineePortalAccountStatus,
+  TraineeStatus,
+} from './entities/trainee.entity';
 
 export interface TraineeFilters {
   academyId?: string;
@@ -55,6 +59,39 @@ export class TraineesService {
 
     this.validateDateOfBirth(dto.dateOfBirth);
 
+    const normalizedEmail =
+      dto.email
+        .trim()
+        .toLowerCase();
+
+    const duplicateEmail =
+      await this.traineesRepository
+        .createQueryBuilder('trainee')
+        .where(
+          'trainee.academyId = :academyId',
+          {
+            academyId:
+              dto.academyId,
+          },
+        )
+        .andWhere(
+          'LOWER(trainee.email) = LOWER(:email)',
+          {
+            email:
+              normalizedEmail,
+          },
+        )
+        .andWhere(
+          'trainee.deletedAt IS NULL',
+        )
+        .getOne();
+
+    if (duplicateEmail) {
+      throw new ConflictException(
+        'يوجد متدرب مسجل بهذا البريد داخل الأكاديمية.',
+      );
+    }
+
     try {
       const traineeId = await this.dataSource.transaction(async (manager) => {
         const traineeRepository = manager.getRepository(Trainee);
@@ -70,7 +107,24 @@ export class TraineesService {
           dateOfBirth: dto.dateOfBirth,
           gender: dto.gender,
           phone: dto.phone?.trim() || null,
-          email: dto.email?.trim().toLowerCase() || null,
+          email:
+            normalizedEmail,
+
+          portalAccountStatus:
+            TraineePortalAccountStatus
+              .PENDING_APPROVAL,
+
+          portalApprovedAt:
+            null,
+
+          portalRejectedAt:
+            null,
+
+          portalInvitationSentAt:
+            null,
+
+          portalInvitationExpiresAt:
+            null,
           profileImageUrl: dto.profileImageUrl?.trim() || null,
           medicalNotes: dto.medicalNotes?.trim() || null,
           emergencyNotes: dto.emergencyNotes?.trim() || null,

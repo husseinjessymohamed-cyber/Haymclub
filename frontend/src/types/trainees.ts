@@ -1,3 +1,12 @@
+
+export type TraineePortalAccountStatus =
+  | 'NOT_CREATED'
+  | 'PENDING_APPROVAL'
+  | 'INVITATION_SENT'
+  | 'ACTIVE'
+  | 'EXPIRED'
+  | 'REJECTED';
+
 export type TraineeGender = 'MALE' | 'FEMALE';
 
 export type TraineeStatus =
@@ -39,6 +48,12 @@ export interface TraineeEnrollment {
 }
 
 export interface Trainee {
+  portalAccountStatus?: TraineePortalAccountStatus;
+  portalApprovedAt?: string | null;
+  portalRejectedAt?: string | null;
+  portalInvitationSentAt?: string | null;
+  portalInvitationExpiresAt?: string | null;
+
   id: string;
   academyId: string;
   branchId: string;

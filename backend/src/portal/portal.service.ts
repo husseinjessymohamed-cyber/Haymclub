@@ -752,6 +752,27 @@ export class PortalService {
                 ),
             ]);
 
+            const subscriptions =
+              await this.billingService.findSubscriptions({
+                traineeId: link.traineeId,
+                academyId: trainee.academyId,
+                branchId: trainee.branchId,
+              });
+
+            const activeSubscription =
+              subscriptions.find(
+                (item) => item.status === 'ACTIVE',
+              ) ??
+              subscriptions[0] ??
+              null;
+
+            const payments =
+              activeSubscription
+                ? await this.billingService.findPayments(
+                    activeSubscription.id,
+                  )
+                : [];
+
             return {
               link: {
                 id: link.id,
@@ -768,6 +789,12 @@ export class PortalService {
               attendance,
 
               billing,
+
+              subscriptions,
+
+              activeSubscription,
+
+              payments,
             };
           },
         ),

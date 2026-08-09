@@ -3,7 +3,6 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
-  OnModuleInit,
 } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { DataSource } from 'typeorm';
@@ -54,144 +53,10 @@ interface FeedbackInput {
 }
 
 @Injectable()
-export class WorkflowService implements OnModuleInit {
+export class WorkflowService {
   constructor(
     private readonly dataSource: DataSource,
   ) {}
-
-  async onModuleInit(): Promise<void> {
-    await this.ensureSchema();
-  }
-
-  async ensureSchema(): Promise<void> {
-    await this.dataSource.query(`
-      CREATE TABLE IF NOT EXISTS workflow_tasks (
-        id UUID PRIMARY KEY,
-        academy_id UUID NULL,
-        branch_id UUID NULL,
-        entity_type VARCHAR(80) NOT NULL,
-        entity_id UUID NULL,
-        task_type VARCHAR(120) NOT NULL,
-        title VARCHAR(255) NOT NULL,
-        description TEXT NULL,
-        status VARCHAR(40) NOT NULL DEFAULT 'READY',
-        priority VARCHAR(30) NOT NULL DEFAULT 'NORMAL',
-        assigned_role VARCHAR(80) NULL,
-        assigned_user_id UUID NULL,
-        parent_task_id UUID NULL,
-        blocked_by_task_id UUID NULL,
-        next_route TEXT NULL,
-        due_at TIMESTAMPTZ NULL,
-        completed_at TIMESTAMPTZ NULL,
-        failure_reason TEXT NULL,
-        metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
-        created_by UUID NULL,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      )
-    `);
-
-    await this.dataSource.query(`
-      CREATE INDEX IF NOT EXISTS idx_workflow_tasks_academy
-      ON workflow_tasks (academy_id)
-    `);
-
-    await this.dataSource.query(`
-      CREATE INDEX IF NOT EXISTS idx_workflow_tasks_status
-      ON workflow_tasks (status)
-    `);
-
-    await this.dataSource.query(`
-      CREATE INDEX IF NOT EXISTS idx_workflow_tasks_assigned_role
-      ON workflow_tasks (assigned_role)
-    `);
-
-    await this.dataSource.query(`
-      CREATE UNIQUE INDEX IF NOT EXISTS uq_workflow_open_task
-      ON workflow_tasks (
-        COALESCE(academy_id::text, ''),
-        entity_type,
-        COALESCE(entity_id::text, ''),
-        task_type
-      )
-      WHERE status NOT IN (
-        'COMPLETED',
-        'CANCELLED'
-      )
-    `);
-
-    await this.dataSource.query(`
-      CREATE TABLE IF NOT EXISTS workflow_events (
-        id UUID PRIMARY KEY,
-        academy_id UUID NULL,
-        branch_id UUID NULL,
-        event_type VARCHAR(140) NOT NULL,
-        entity_type VARCHAR(80) NOT NULL,
-        entity_id UUID NULL,
-        actor_user_id UUID NULL,
-        task_id UUID NULL,
-        payload JSONB NOT NULL DEFAULT '{}'::jsonb,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      )
-    `);
-
-    await this.dataSource.query(`
-      CREATE INDEX IF NOT EXISTS idx_workflow_events_academy
-      ON workflow_events (academy_id, created_at DESC)
-    `);
-
-    await this.dataSource.query(`
-      CREATE TABLE IF NOT EXISTS workflow_task_dependencies (
-        id UUID PRIMARY KEY,
-        task_id UUID NOT NULL,
-        depends_on_task_id UUID NOT NULL,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        UNIQUE (task_id, depends_on_task_id)
-      )
-    `);
-
-    await this.dataSource.query(`
-      CREATE TABLE IF NOT EXISTS workflow_feedback (
-        id UUID PRIMARY KEY,
-        academy_id UUID NULL,
-        branch_id UUID NULL,
-        created_by UUID NOT NULL,
-        feedback_type VARCHAR(80) NOT NULL,
-        subject VARCHAR(255) NOT NULL,
-        message TEXT NOT NULL,
-        status VARCHAR(40) NOT NULL DEFAULT 'OPEN',
-        entity_type VARCHAR(80) NULL,
-        entity_id UUID NULL,
-        assigned_task_id UUID NULL,
-        admin_response TEXT NULL,
-        resolved_by UUID NULL,
-        resolved_at TIMESTAMPTZ NULL,
-        metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      )
-    `);
-
-    await this.dataSource.query(`
-      CREATE INDEX IF NOT EXISTS idx_workflow_feedback_academy
-      ON workflow_feedback (academy_id, status)
-    `);
-
-    await this.dataSource.query(`
-      CREATE TABLE IF NOT EXISTS workflow_outbox (
-        id UUID PRIMARY KEY,
-        event_type VARCHAR(140) NOT NULL,
-        payload JSONB NOT NULL DEFAULT '{}'::jsonb,
-        status VARCHAR(40) NOT NULL DEFAULT 'PENDING',
-        attempts INTEGER NOT NULL DEFAULT 0,
-        available_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        processed_at TIMESTAMPTZ NULL,
-        last_error TEXT NULL,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      )
-    `);
-  }
 
   async listTasks(
     user: WorkflowUser,

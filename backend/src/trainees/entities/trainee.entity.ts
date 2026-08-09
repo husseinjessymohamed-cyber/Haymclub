@@ -24,6 +24,16 @@ export enum TraineeStatus {
   INACTIVE = 'INACTIVE',
 }
 
+
+export enum TraineePortalAccountStatus {
+  NOT_CREATED = 'NOT_CREATED',
+  PENDING_APPROVAL = 'PENDING_APPROVAL',
+  INVITATION_SENT = 'INVITATION_SENT',
+  ACTIVE = 'ACTIVE',
+  EXPIRED = 'EXPIRED',
+  REJECTED = 'REJECTED',
+}
+
 @Entity({ name: 'trainees' })
 @Unique('UQ_trainees_academy_registration_code', [
   'academyId',
@@ -105,6 +115,44 @@ export class Trainee extends BaseEntity {
     nullable: true,
   })
   email: string | null;
+
+
+  @Column({
+    name: 'portal_account_status',
+    type: 'enum',
+    enum: TraineePortalAccountStatus,
+    enumName: 'trainee_portal_account_status_enum',
+    default: TraineePortalAccountStatus.NOT_CREATED,
+  })
+  portalAccountStatus: TraineePortalAccountStatus;
+
+  @Column({
+    name: 'portal_approved_at',
+    type: 'timestamptz',
+    nullable: true,
+  })
+  portalApprovedAt: Date | null;
+
+  @Column({
+    name: 'portal_rejected_at',
+    type: 'timestamptz',
+    nullable: true,
+  })
+  portalRejectedAt: Date | null;
+
+  @Column({
+    name: 'portal_invitation_sent_at',
+    type: 'timestamptz',
+    nullable: true,
+  })
+  portalInvitationSentAt: Date | null;
+
+  @Column({
+    name: 'portal_invitation_expires_at',
+    type: 'timestamptz',
+    nullable: true,
+  })
+  portalInvitationExpiresAt: Date | null;
 
   @Column({
     name: 'profile_image_url',

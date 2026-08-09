@@ -16,14 +16,20 @@ function getAllowedOrigins(): Set<string> {
     .map(normalizeUrl)
     .filter(Boolean);
 
-  const localFrontendUrls = [
-    'http://localhost:5173',
-      'https://localhost:5173',
-    'http://127.0.0.1:5173',
-      'https://127.0.0.1:5173',
-    'http://localhost:5174',
-    'http://127.0.0.1:5174',
-  ];
+  const isProduction =
+    process.env.NODE_ENV === 'production';
+
+  const localFrontendUrls =
+    isProduction
+      ? []
+      : [
+          'http://localhost:5173',
+          'https://localhost:5173',
+          'http://127.0.0.1:5173',
+          'https://127.0.0.1:5173',
+          'http://localhost:5174',
+          'http://127.0.0.1:5174',
+        ];
 
   const codespaceName = process.env.CODESPACE_NAME;
 
@@ -72,14 +78,17 @@ async function bootstrap(): Promise<void> {
         ? 'https://' + process.env.CODESPACE_NAME + '-5173.app.github.dev'
         : undefined,
 
-      'https://super-duper-space-memory-qvqgw45pv5p5fx76-5173.app.github.dev',
-
-      'http://localhost:5173',
-      'https://localhost:5173',
-      'http://localhost:5174',
-      'http://127.0.0.1:5173',
-      'https://127.0.0.1:5173',
-      'http://127.0.0.1:5174',
+      ...(process.env.NODE_ENV === 'production'
+        ? []
+        : [
+            'https://super-duper-space-memory-qvqgw45pv5p5fx76-5173.app.github.dev',
+            'http://localhost:5173',
+            'https://localhost:5173',
+            'http://localhost:5174',
+            'http://127.0.0.1:5173',
+            'https://127.0.0.1:5173',
+            'http://127.0.0.1:5174',
+          ]),
     ].filter(
       (value): value is string => typeof value === 'string' && value.length > 0,
     ),
