@@ -1,0 +1,98 @@
+name: Build Haymclub Android APKs
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'android-apk/**'
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    strategy:
+      fail-fast: false
+
+      matrix:
+        include:
+          - variant: superadmin
+            name: Haymclub Super Admin
+            android_dir: android-superadmin
+            apk: Haymclub-SuperAdmin.apk
+            artifact: Haymclub-SuperAdmin-APK
+
+          - variant: academy
+            name: Haymclub Academy
+            android_dir: android-academy
+            apk: Haymclub-Academy.apk
+            artifact: Haymclub-Academy-APK
+
+          - variant: trainee
+            name: Haymclub Trainee
+            android_dir: android-trainee
+            apk: Haymclub-Trainee.apk
+            artifact: Haymclub-Trainee-APK
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Node 24
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Install Android SDK packages
+        run: |
+          sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build mobile web application
+        working-directory: frontend
+        env:
+          VITE_API_BASE_URL: https://haym.click/api
+          VITE_HAYMCLUB_APP: ${{ matrix.variant }}
+        run: npm run build
+
+      - name: Sync Capacitor
+        working-directory: frontend
+        env:
+          HAYMCLUB_APP: ${{ matrix.variant }}
+        run: npx cap sync android
+
+      - name: Build debug APK
+        working-directory: frontend/${{ matrix.android_dir }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Prepare APK
+        run: |
+          cp "frontend/${{ matrix.android_dir }}/app/build/outputs/apk/debug/app-debug.apk" "${{ matrix.apk }}"
+          ls -lh "${{ matrix.apk }}"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.apk }}
+          if-no-files-found: error
+          retention-days: 30

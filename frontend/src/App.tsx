@@ -227,6 +227,70 @@ function LoginPage({
   );
 }
 
+
+const HAYMCLUB_APP_VARIANT = (
+  import.meta.env.VITE_HAYMCLUB_APP ||
+  'web'
+).trim().toLowerCase();
+
+function isRoleAllowedForHaymclubApp(
+  role: string | null | undefined,
+): boolean {
+  if (
+    HAYMCLUB_APP_VARIANT === 'web'
+  ) {
+    return true;
+  }
+
+  if (
+    HAYMCLUB_APP_VARIANT ===
+    'superadmin'
+  ) {
+    return role === 'SUPER_ADMIN';
+  }
+
+  if (
+    HAYMCLUB_APP_VARIANT ===
+    'academy'
+  ) {
+    return role === 'ACADEMY_ADMIN';
+  }
+
+  if (
+    HAYMCLUB_APP_VARIANT ===
+    'trainee'
+  ) {
+    return role === 'TRAINEE';
+  }
+
+  return false;
+}
+
+function haymclubAppTitle(): string {
+  if (
+    HAYMCLUB_APP_VARIANT ===
+    'superadmin'
+  ) {
+    return 'Haymclub Super Admin';
+  }
+
+  if (
+    HAYMCLUB_APP_VARIANT ===
+    'academy'
+  ) {
+    return 'Haymclub Academy';
+  }
+
+  if (
+    HAYMCLUB_APP_VARIANT ===
+    'trainee'
+  ) {
+    return 'Haymclub Trainee';
+  }
+
+  return 'Haymclub';
+}
+
 function App() {
 
   const searchParameters =
@@ -358,6 +422,77 @@ function App() {
     activeRole(
       profileQuery.data,
     );
+
+  if (
+    !isRoleAllowedForHaymclubApp(
+      role,
+    )
+  ) {
+    return (
+      <main
+        dir="rtl"
+        style={{
+          minHeight: '100vh',
+          display: 'grid',
+          placeItems: 'center',
+          padding: '24px',
+          background:
+            'linear-gradient(135deg, #07152b, #0d2d52)',
+        }}
+      >
+        <section
+          style={{
+            width: '100%',
+            maxWidth: '460px',
+            padding: '32px',
+            borderRadius: '24px',
+            background: '#ffffff',
+            boxShadow:
+              '0 24px 70px rgba(0,0,0,.3)',
+            textAlign: 'center',
+          }}
+        >
+          <h1
+            style={{
+              marginTop: 0,
+              color: '#0d2d52',
+            }}
+          >
+            {haymclubAppTitle()}
+          </h1>
+
+          <p
+            style={{
+              lineHeight: 1.9,
+              color: '#475569',
+            }}
+          >
+            هذا الحساب غير مخصص لهذا التطبيق.
+            استخدم تطبيق Haymclub المخصص لنوع حسابك.
+          </p>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            style={{
+              width: '100%',
+              marginTop: '16px',
+              padding: '14px',
+              border: 0,
+              borderRadius: '12px',
+              background: '#0d2d52',
+              color: '#ffffff',
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            تسجيل الخروج
+          </button>
+        </section>
+      </main>
+    );
+  }
+
 
   if (
     role === 'PARENT' ||

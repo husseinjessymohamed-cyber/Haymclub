@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Haymclub Academy</string>
+    <string name="title_activity_main">Haymclub Academy</string>
+    <string name="package_name">click.haym.academy</string>
+    <string name="custom_url_scheme">click.haym.academy</string>
+</resources>

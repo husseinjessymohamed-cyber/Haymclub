@@ -4,10 +4,14 @@ import type { DashboardOverview } from "../types/dashboard";
 
 export const AUTH_TOKEN_KEY = "haymclub_token";
 
+const API_BASE_URL =
+  (
+    import.meta.env.VITE_API_BASE_URL ||
+    "/api"
+  ).replace(/\/+$/, "");
+
 export const api = axios.create({
-  // الطلب يذهب إلى Vite على 5173،
-  // ثم Vite يمرره داخليًا إلى Backend على 3000.
-  baseURL: "/api",
+  baseURL: API_BASE_URL,
 
   headers: {
     Accept: "application/json",
