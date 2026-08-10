@@ -2,7 +2,6 @@ name: Build Haymclub Signed Android Releases
 
 on:
   workflow_dispatch:
-
   push:
     branches:
       - 'android-apk/**'
@@ -14,9 +13,7 @@ jobs:
   build-release:
 
     name: ${{ matrix.name }}
-
     runs-on: ubuntu-latest
-
     timeout-minutes: 45
 
     strategy:
@@ -103,65 +100,58 @@ jobs:
         run: |
           set -e
 
-          if [ -z "$KEYSTORE_B64" ]; then
-            echo "Missing keystore secret"
-            exit 2
-          fi
-
-          if [ -z "$SIGNING_PASSWORD" ]; then
-            echo "Missing signing password secret"
-            exit 2
-          fi
+          test -n "$KEYSTORE_B64"
+          test -n "$SIGNING_PASSWORD"
 
           mkdir -p "$RUNNER_TEMP/haymclub-signing"
 
+          KEYSTORE="$RUNNER_TEMP/haymclub-signing/${{ matrix.variant }}.p12"
+
           printf '%s' "$KEYSTORE_B64" \
             | base64 --decode \
-            > "$RUNNER_TEMP/haymclub-signing/${{ matrix.variant }}.p12"
+            > "$KEYSTORE"
 
-          chmod 600 \
-            "$RUNNER_TEMP/haymclub-signing/${{ matrix.variant }}.p12"
+          chmod 600 "$KEYSTORE"
 
           keytool -list \
-            -keystore "$RUNNER_TEMP/haymclub-signing/${{ matrix.variant }}.p12" \
-            -storepass "$SIGNING_PASSWORD" \
+            -storetype PKCS12 \
+            -keystore "$KEYSTORE" \
+            -storepass:env SIGNING_PASSWORD \
             -alias "$KEY_ALIAS" \
             >/dev/null
 
-          echo "Signing key verified"
+          echo "KEYSTORE VERIFIED"
 
-      - name: Build signed Release APK
-        working-directory: frontend
+      - name: Build unsigned Release APK
+        working-directory: frontend/${{ matrix.android_dir }}
+        run: |
+          chmod +x gradlew
+          ./gradlew clean assembleRelease --no-daemon
+
+      - name: Align and sign APK with v2 v3
         env:
-          HAYMCLUB_APP: ${{ matrix.variant }}
           SIGNING_PASSWORD: ${{ secrets.HAYMCLUB_SIGNING_PASSWORD }}
         run: |
           set -e
 
-          npx cap build android \
-            --keystorepath "$RUNNER_TEMP/haymclub-signing/${{ matrix.variant }}.p12" \
-            --keystorepass "$SIGNING_PASSWORD" \
-            --keystorealias "${{ matrix.alias }}" \
-            --keystorealiaspass "$SIGNING_PASSWORD" \
-            --androidreleasetype APK
+          RELEASE="$RUNNER_TEMP/haymclub-release"
+          KEYSTORE="$RUNNER_TEMP/haymclub-signing/${{ matrix.variant }}.p12"
 
-      - name: Verify and collect signed APK
-        run: |
-          set -e
+          ZIPALIGN="$ANDROID_HOME/build-tools/36.0.0/zipalign"
+          APKSIGNER="$ANDROID_HOME/build-tools/36.0.0/apksigner"
 
-          mkdir -p "$RUNNER_TEMP/haymclub-release"
+          mkdir -p "$RELEASE"
 
-          APK_SRC="$(
+          UNSIGNED_APK="$(
             find \
               "frontend/${{ matrix.android_dir }}/app/build/outputs/apk/release" \
               -type f \
-              -name '*.apk' \
-              ! -name '*unsigned*' \
+              -name '*unsigned*.apk' \
               | head -1
           )"
 
-          if [ -z "$APK_SRC" ]; then
-            echo "Signed APK not found"
+          if [ -z "$UNSIGNED_APK" ]; then
+            echo "UNSIGNED APK NOT FOUND"
             find \
               "frontend/${{ matrix.android_dir }}/app/build/outputs" \
               -type f \
@@ -169,40 +159,61 @@ jobs:
             exit 2
           fi
 
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" \
-            verify \
+          ALIGNED_APK="$RUNNER_TEMP/${{ matrix.variant }}-aligned.apk"
+          FINAL_APK="$RELEASE/${{ matrix.apk_name }}"
+
+          "$ZIPALIGN" \
+            -f \
+            -p \
+            4 \
+            "$UNSIGNED_APK" \
+            "$ALIGNED_APK"
+
+          "$ZIPALIGN" \
+            -c \
+            -v \
+            4 \
+            "$ALIGNED_APK"
+
+          "$APKSIGNER" sign \
+            --ks "$KEYSTORE" \
+            --ks-type PKCS12 \
+            --ks-key-alias "${{ matrix.alias }}" \
+            --ks-pass env:SIGNING_PASSWORD \
+            --key-pass env:SIGNING_PASSWORD \
+            --v2-signing-enabled true \
+            --v3-signing-enabled true \
+            --out "$FINAL_APK" \
+            "$ALIGNED_APK"
+
+          echo
+          echo "=== APK SIGNATURE VERIFY ==="
+
+          "$APKSIGNER" verify \
             --verbose \
-            "$APK_SRC"
+            --print-certs \
+            "$FINAL_APK"
 
-          cp \
-            "$APK_SRC" \
-            "$RUNNER_TEMP/haymclub-release/${{ matrix.apk_name }}"
+          echo
+          echo "✅ SIGNED APK VERIFIED"
 
-          echo "SIGNED APK OK"
+          ls -lh "$FINAL_APK"
 
-          ls -lh \
-            "$RUNNER_TEMP/haymclub-release/${{ matrix.apk_name }}"
+      - name: Build unsigned Release AAB
+        working-directory: frontend/${{ matrix.android_dir }}
+        run: |
+          ./gradlew bundleRelease --no-daemon
 
-      - name: Build signed Release AAB
-        working-directory: frontend
+      - name: Sign and verify AAB
         env:
-          HAYMCLUB_APP: ${{ matrix.variant }}
           SIGNING_PASSWORD: ${{ secrets.HAYMCLUB_SIGNING_PASSWORD }}
         run: |
           set -e
 
-          npx cap build android \
-            --keystorepath "$RUNNER_TEMP/haymclub-signing/${{ matrix.variant }}.p12" \
-            --keystorepass "$SIGNING_PASSWORD" \
-            --keystorealias "${{ matrix.alias }}" \
-            --keystorealiaspass "$SIGNING_PASSWORD" \
-            --androidreleasetype AAB
+          RELEASE="$RUNNER_TEMP/haymclub-release"
+          KEYSTORE="$RUNNER_TEMP/haymclub-signing/${{ matrix.variant }}.p12"
 
-      - name: Verify and collect signed AAB
-        run: |
-          set -e
-
-          AAB_SRC="$(
+          UNSIGNED_AAB="$(
             find \
               "frontend/${{ matrix.android_dir }}/app/build/outputs/bundle/release" \
               -type f \
@@ -210,8 +221,8 @@ jobs:
               | head -1
           )"
 
-          if [ -z "$AAB_SRC" ]; then
-            echo "Signed AAB not found"
+          if [ -z "$UNSIGNED_AAB" ]; then
+            echo "AAB NOT FOUND"
             find \
               "frontend/${{ matrix.android_dir }}/app/build/outputs" \
               -type f \
@@ -219,19 +230,28 @@ jobs:
             exit 2
           fi
 
+          FINAL_AAB="$RELEASE/${{ matrix.aab_name }}"
+
+          jarsigner \
+            -keystore "$KEYSTORE" \
+            -storetype PKCS12 \
+            -storepass:env SIGNING_PASSWORD \
+            -keypass:env SIGNING_PASSWORD \
+            -signedjar "$FINAL_AAB" \
+            "$UNSIGNED_AAB" \
+            "${{ matrix.alias }}"
+
+          echo
+          echo "=== AAB SIGNATURE VERIFY ==="
+
           jarsigner \
             -verify \
-            "$AAB_SRC" \
-            >/dev/null
+            "$FINAL_AAB"
 
-          cp \
-            "$AAB_SRC" \
-            "$RUNNER_TEMP/haymclub-release/${{ matrix.aab_name }}"
+          echo
+          echo "✅ SIGNED AAB VERIFIED"
 
-          echo "SIGNED AAB OK"
-
-          ls -lh \
-            "$RUNNER_TEMP/haymclub-release/${{ matrix.aab_name }}"
+          ls -lh "$FINAL_AAB"
 
       - name: Upload signed release
         uses: actions/upload-artifact@v7
