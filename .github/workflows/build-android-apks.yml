@@ -1,7 +1,8 @@
-name: Build Haymclub Android APKs
+name: Build Haymclub Signed Android Releases
 
 on:
   workflow_dispatch:
+
   push:
     branches:
       - 'android-apk/**'
@@ -10,35 +11,49 @@ permissions:
   contents: read
 
 jobs:
-  build-apk:
+  build-release:
+
     name: ${{ matrix.name }}
+
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+
+    timeout-minutes: 45
 
     strategy:
       fail-fast: false
 
       matrix:
         include:
+
           - variant: superadmin
             name: Haymclub Super Admin
             android_dir: android-superadmin
-            apk: Haymclub-SuperAdmin.apk
-            artifact: Haymclub-SuperAdmin-APK
+            alias: haymclub-superadmin-upload
+            keystore_secret: HAYMCLUB_SUPERADMIN_KEYSTORE_B64
+            apk_name: Haymclub-SuperAdmin-Release.apk
+            aab_name: Haymclub-SuperAdmin.aab
+            artifact_name: Haymclub-SuperAdmin-Release
 
           - variant: academy
             name: Haymclub Academy
             android_dir: android-academy
-            apk: Haymclub-Academy.apk
-            artifact: Haymclub-Academy-APK
+            alias: haymclub-academy-upload
+            keystore_secret: HAYMCLUB_ACADEMY_KEYSTORE_B64
+            apk_name: Haymclub-Academy-Release.apk
+            aab_name: Haymclub-Academy.aab
+            artifact_name: Haymclub-Academy-Release
 
           - variant: trainee
             name: Haymclub Trainee
             android_dir: android-trainee
-            apk: Haymclub-Trainee.apk
-            artifact: Haymclub-Trainee-APK
+            alias: haymclub-trainee-upload
+            keystore_secret: HAYMCLUB_TRAINEE_KEYSTORE_B64
+            apk_name: Haymclub-Trainee-Release.apk
+            aab_name: Haymclub-Trainee.aab
+            artifact_name: Haymclub-Trainee-Release
 
     steps:
+
       - name: Checkout repository
         uses: actions/checkout@v7
 
@@ -59,13 +74,15 @@ jobs:
 
       - name: Install Android SDK packages
         run: |
-          sdkmanager "platforms;android-36" "build-tools;36.0.0"
+          sdkmanager \
+            "platforms;android-36" \
+            "build-tools;36.0.0"
 
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci
 
-      - name: Build mobile web application
+      - name: Build mobile web app
         working-directory: frontend
         env:
           VITE_API_BASE_URL: https://haym.click/api
@@ -78,21 +95,150 @@ jobs:
           HAYMCLUB_APP: ${{ matrix.variant }}
         run: npx cap sync android
 
-      - name: Build debug APK
-        working-directory: frontend/${{ matrix.android_dir }}
+      - name: Restore signing keystore
+        env:
+          KEYSTORE_B64: ${{ secrets[matrix.keystore_secret] }}
+          SIGNING_PASSWORD: ${{ secrets.HAYMCLUB_SIGNING_PASSWORD }}
+          KEY_ALIAS: ${{ matrix.alias }}
         run: |
-          chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          set -e
 
-      - name: Prepare APK
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "Missing keystore secret"
+            exit 2
+          fi
+
+          if [ -z "$SIGNING_PASSWORD" ]; then
+            echo "Missing signing password secret"
+            exit 2
+          fi
+
+          mkdir -p "$RUNNER_TEMP/haymclub-signing"
+
+          printf '%s' "$KEYSTORE_B64" \
+            | base64 --decode \
+            > "$RUNNER_TEMP/haymclub-signing/${{ matrix.variant }}.p12"
+
+          chmod 600 \
+            "$RUNNER_TEMP/haymclub-signing/${{ matrix.variant }}.p12"
+
+          keytool -list \
+            -keystore "$RUNNER_TEMP/haymclub-signing/${{ matrix.variant }}.p12" \
+            -storepass "$SIGNING_PASSWORD" \
+            -alias "$KEY_ALIAS" \
+            >/dev/null
+
+          echo "Signing key verified"
+
+      - name: Build signed Release APK
+        working-directory: frontend
+        env:
+          HAYMCLUB_APP: ${{ matrix.variant }}
+          SIGNING_PASSWORD: ${{ secrets.HAYMCLUB_SIGNING_PASSWORD }}
         run: |
-          cp "frontend/${{ matrix.android_dir }}/app/build/outputs/apk/debug/app-debug.apk" "${{ matrix.apk }}"
-          ls -lh "${{ matrix.apk }}"
+          set -e
 
-      - name: Upload APK
+          npx cap build android \
+            --keystorepath "$RUNNER_TEMP/haymclub-signing/${{ matrix.variant }}.p12" \
+            --keystorepass "$SIGNING_PASSWORD" \
+            --keystorealias "${{ matrix.alias }}" \
+            --keystorealiaspass "$SIGNING_PASSWORD" \
+            --androidreleasetype APK
+
+      - name: Verify and collect signed APK
+        run: |
+          set -e
+
+          mkdir -p "$RUNNER_TEMP/haymclub-release"
+
+          APK_SRC="$(
+            find \
+              "frontend/${{ matrix.android_dir }}/app/build/outputs/apk/release" \
+              -type f \
+              -name '*.apk' \
+              ! -name '*unsigned*' \
+              | head -1
+          )"
+
+          if [ -z "$APK_SRC" ]; then
+            echo "Signed APK not found"
+            find \
+              "frontend/${{ matrix.android_dir }}/app/build/outputs" \
+              -type f \
+              || true
+            exit 2
+          fi
+
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" \
+            verify \
+            --verbose \
+            "$APK_SRC"
+
+          cp \
+            "$APK_SRC" \
+            "$RUNNER_TEMP/haymclub-release/${{ matrix.apk_name }}"
+
+          echo "SIGNED APK OK"
+
+          ls -lh \
+            "$RUNNER_TEMP/haymclub-release/${{ matrix.apk_name }}"
+
+      - name: Build signed Release AAB
+        working-directory: frontend
+        env:
+          HAYMCLUB_APP: ${{ matrix.variant }}
+          SIGNING_PASSWORD: ${{ secrets.HAYMCLUB_SIGNING_PASSWORD }}
+        run: |
+          set -e
+
+          npx cap build android \
+            --keystorepath "$RUNNER_TEMP/haymclub-signing/${{ matrix.variant }}.p12" \
+            --keystorepass "$SIGNING_PASSWORD" \
+            --keystorealias "${{ matrix.alias }}" \
+            --keystorealiaspass "$SIGNING_PASSWORD" \
+            --androidreleasetype AAB
+
+      - name: Verify and collect signed AAB
+        run: |
+          set -e
+
+          AAB_SRC="$(
+            find \
+              "frontend/${{ matrix.android_dir }}/app/build/outputs/bundle/release" \
+              -type f \
+              -name '*.aab' \
+              | head -1
+          )"
+
+          if [ -z "$AAB_SRC" ]; then
+            echo "Signed AAB not found"
+            find \
+              "frontend/${{ matrix.android_dir }}/app/build/outputs" \
+              -type f \
+              || true
+            exit 2
+          fi
+
+          jarsigner \
+            -verify \
+            "$AAB_SRC" \
+            >/dev/null
+
+          cp \
+            "$AAB_SRC" \
+            "$RUNNER_TEMP/haymclub-release/${{ matrix.aab_name }}"
+
+          echo "SIGNED AAB OK"
+
+          ls -lh \
+            "$RUNNER_TEMP/haymclub-release/${{ matrix.aab_name }}"
+
+      - name: Upload signed release
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ matrix.artifact }}
-          path: ${{ matrix.apk }}
+          name: ${{ matrix.artifact_name }}
+          path: |
+            ${{ runner.temp }}/haymclub-release/${{ matrix.apk_name }}
+            ${{ runner.temp }}/haymclub-release/${{ matrix.aab_name }}
           if-no-files-found: error
           retention-days: 30
