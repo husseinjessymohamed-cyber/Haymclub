@@ -774,6 +774,26 @@ export class PortalService {
                 : [];
 
             return {
+              academy:
+                link.academy
+                  ? {
+                      id:
+                        link.academy.id,
+
+                      name:
+                        link.academy.name,
+
+                      slug:
+                        link.academy.slug,
+
+                      logoUrl:
+                        link.academy.logoUrl,
+
+                      currency:
+                        link.academy.currency,
+                    }
+                  : null,
+
               link: {
                 id: link.id,
                 relationship:
