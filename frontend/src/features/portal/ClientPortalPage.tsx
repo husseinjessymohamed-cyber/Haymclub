@@ -41,6 +41,33 @@ interface ClientPortalPageProps {
   onLogout: () => void;
 }
 
+// HAYMCLUB_TRAINEE_DASHBOARD_FINAL_V1
+type PortalSection =
+  | 'home'
+  | 'profile'
+  | 'training'
+  | 'attendance'
+  | 'subscription'
+  | 'payments'
+  | 'notifications'
+  | 'feedback'
+  | 'gallery'
+  | 'rankings';
+
+const portalSectionTitles:
+Record<PortalSection, string> = {
+  home: 'الرئيسية',
+  profile: 'ملفي الشخصي',
+  training: 'المجموعة والمواعيد',
+  attendance: 'الحضور',
+  subscription: 'الاشتراك',
+  payments: 'المدفوعات',
+  notifications: 'الإشعارات',
+  feedback: 'التواصل مع الأكاديمية',
+  gallery: 'المعرض',
+  rankings: 'Top 10',
+};
+
 type UnknownRecord =
   Record<string, unknown>;
 
@@ -261,6 +288,28 @@ export function ClientPortalPage({
     setSelectedTraineeId,
   ] = useState('');
 
+  const [
+    activeSection,
+    setActiveSection,
+  ] = useState<PortalSection>('home');
+
+  const [
+    sidebarOpen,
+    setSidebarOpen,
+  ] = useState(false);
+
+  const openPortalSection = (
+    section: PortalSection,
+  ) => {
+    setActiveSection(section);
+    setSidebarOpen(false);
+
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
+  };
+
   const data = query.data;
 
   useEffect(() => {
@@ -431,10 +480,273 @@ export function ClientPortalPage({
 
   return (
     <main
-      className="client-portal-page"
+      className="client-portal-page client-portal-dashboard-v1"
       dir="rtl"
     >
-      <header className="client-portal-header">
+      <div className="client-portal-dashboard-shell">
+
+        <button
+          type="button"
+          aria-label="إغلاق القائمة"
+          className={`client-sidebar-overlay ${
+            sidebarOpen
+              ? 'is-open'
+              : ''
+          }`}
+          onClick={() =>
+            setSidebarOpen(false)
+          }
+        />
+
+        <aside
+          className={`client-dashboard-sidebar ${
+            sidebarOpen
+              ? 'is-open'
+              : ''
+          }`}
+        >
+
+          <div className="client-sidebar-brand">
+
+            <div className="client-sidebar-logo">
+              H
+            </div>
+
+            <div>
+              <strong>Haymclub</strong>
+              <span>بوابة المتدرب</span>
+            </div>
+
+          </div>
+
+          {selected && (
+            <div className="client-sidebar-trainee">
+
+              <div className="client-sidebar-avatar">
+                {selected.trainee
+                  .firstName
+                  .charAt(0)}
+              </div>
+
+              <div>
+                <strong>
+                  {selected.trainee
+                    .firstName}{' '}
+                  {selected.trainee
+                    .lastName}
+                </strong>
+
+                <span>
+                  {
+                    selected.trainee
+                      .registrationCode
+                  }
+                </span>
+
+                <small>
+                  {data.user.email}
+                </small>
+              </div>
+
+            </div>
+          )}
+
+          <nav className="client-sidebar-nav">
+
+            <button
+              type="button"
+              className={
+                activeSection === 'home'
+                  ? 'active'
+                  : ''
+              }
+              onClick={() =>
+                openPortalSection('home')
+              }
+            >
+              <span>⌂</span>
+              الرئيسية
+            </button>
+
+            <button
+              type="button"
+              className={
+                activeSection === 'profile'
+                  ? 'active'
+                  : ''
+              }
+              onClick={() =>
+                openPortalSection('profile')
+              }
+            >
+              <span>👤</span>
+              ملفي الشخصي
+            </button>
+
+            <button
+              type="button"
+              className={
+                activeSection ===
+                'subscription'
+                  ? 'active'
+                  : ''
+              }
+              onClick={() =>
+                openPortalSection(
+                  'subscription',
+                )
+              }
+            >
+              <span>💳</span>
+              الاشتراك
+            </button>
+
+            <button
+              type="button"
+              className={
+                activeSection ===
+                'attendance'
+                  ? 'active'
+                  : ''
+              }
+              onClick={() =>
+                openPortalSection(
+                  'attendance',
+                )
+              }
+            >
+              <span>✓</span>
+              الحضور
+            </button>
+
+            <button
+              type="button"
+              className={
+                activeSection ===
+                'training'
+                  ? 'active'
+                  : ''
+              }
+              onClick={() =>
+                openPortalSection(
+                  'training',
+                )
+              }
+            >
+              <span>⚽</span>
+              المجموعة والمواعيد
+            </button>
+
+            <button
+              type="button"
+              className={
+                activeSection ===
+                'payments'
+                  ? 'active'
+                  : ''
+              }
+              onClick={() =>
+                openPortalSection(
+                  'payments',
+                )
+              }
+            >
+              <span>⌁</span>
+              المدفوعات
+            </button>
+
+            <div className="client-sidebar-divider" />
+
+            <button
+              type="button"
+              className={
+                activeSection ===
+                'notifications'
+                  ? 'active'
+                  : ''
+              }
+              onClick={() =>
+                openPortalSection(
+                  'notifications',
+                )
+              }
+            >
+              <span>🔔</span>
+              الإشعارات
+            </button>
+
+            <button
+              type="button"
+              className={
+                activeSection === 'feedback'
+                  ? 'active'
+                  : ''
+              }
+              onClick={() =>
+                openPortalSection('feedback')
+              }
+            >
+              <span>✉</span>
+              التواصل مع الأكاديمية
+            </button>
+
+            <button
+              type="button"
+              className={
+                activeSection === 'gallery'
+                  ? 'active'
+                  : ''
+              }
+              onClick={() =>
+                openPortalSection('gallery')
+              }
+            >
+              <span>▣</span>
+              المعرض
+            </button>
+
+            <button
+              type="button"
+              className={
+                activeSection === 'rankings'
+                  ? 'active'
+                  : ''
+              }
+              onClick={() =>
+                openPortalSection('rankings')
+              }
+            >
+              <span>🏆</span>
+              Top 10
+            </button>
+
+          </nav>
+
+          <button
+            type="button"
+            className="client-sidebar-logout"
+            onClick={onLogout}
+          >
+            <span>↪</span>
+            تسجيل الخروج
+          </button>
+
+        </aside>
+
+        <div className="client-dashboard-main">
+
+      <header className="client-portal-header client-dashboard-header">
+
+        <button
+          type="button"
+          className="client-mobile-menu"
+          aria-label="فتح القائمة"
+          onClick={() =>
+            setSidebarOpen(true)
+          }
+        >
+          ☰
+        </button>
         <div className="client-portal-brand">
           <span>H</span>
 
@@ -469,7 +781,40 @@ export function ClientPortalPage({
         </div>
       </header>
 
-      <section className="client-portal-hero">
+      <div className="client-dashboard-page-heading">
+
+        <div>
+          <span>بوابة المتدرب</span>
+
+          <h1>
+            {
+              portalSectionTitles[
+                activeSection
+              ]
+            }
+          </h1>
+        </div>
+
+        {activeSection !== 'home' && (
+          <button
+            type="button"
+            onClick={() =>
+              openPortalSection('home')
+            }
+          >
+            العودة للرئيسية
+          </button>
+        )}
+
+      </div>
+
+      <section
+        className={`client-portal-hero ${
+          activeSection === 'home'
+            ? ''
+            : 'client-section-hidden'
+        }`}
+      >
         <div>
           <p>
             أهلاً بك في بوابة الأكاديمية
@@ -537,7 +882,13 @@ export function ClientPortalPage({
         </section>
       ) : (
         <>
-          <section className="client-trainee-profile">
+          <section
+            className={`client-trainee-profile ${
+              activeSection === 'profile'
+                ? ''
+                : 'client-section-hidden'
+            }`}
+          >
             <div className="client-trainee-avatar">
               {selected.trainee
                 .firstName.charAt(0)}
@@ -596,8 +947,23 @@ export function ClientPortalPage({
             </div>
           </section>
 {/* HAYMCLUB_CLIENT_NOTIFICATIONS_PANEL */}
-          <ClientNotificationsPanel />
+          <div
+            className={
+              activeSection === 'notifications'
+                ? ''
+                : 'client-section-hidden'
+            }
+          >
+            <ClientNotificationsPanel />
+          </div>
 
+          <div
+            className={
+              activeSection === 'feedback'
+                ? ''
+                : 'client-section-hidden'
+            }
+          >
           <ClientFeedbackPanel
             traineeId={
               selected.trainee.id
@@ -607,14 +973,44 @@ export function ClientPortalPage({
               `${selected.trainee.firstName} ${selected.trainee.lastName}`.trim()
             }
           />
+          </div>
 
 
-          <ClientGalleryPanel />
+          <div
+            className={
+              activeSection === 'gallery'
+                ? ''
+                : 'client-section-hidden'
+            }
+          >
+            <ClientGalleryPanel />
+          </div>
 
-          <ClientTopTenPanel />
+          <div
+            className={
+              activeSection === 'rankings'
+                ? ''
+                : 'client-section-hidden'
+            }
+          >
+            <ClientTopTenPanel />
+          </div>
 
-          <section className="client-portal-cards">
-            <article>
+          <section
+            className={`client-portal-cards client-home-summary-cards ${
+              activeSection === 'home'
+                ? ''
+                : 'client-section-hidden'
+            }`}
+          >
+            <article
+              className="client-summary-card"
+              onClick={() =>
+                openPortalSection(
+                  'attendance',
+                )
+              }
+            >
               <span className="blue">
                 ✓
               </span>
@@ -642,7 +1038,14 @@ export function ClientPortalPage({
               </div>
             </article>
 
-            <article>
+            <article
+              className="client-summary-card"
+              onClick={() =>
+                openPortalSection(
+                  'payments',
+                )
+              }
+            >
               <span className="green">
                 💳
               </span>
@@ -663,7 +1066,14 @@ export function ClientPortalPage({
               </div>
             </article>
 
-            <article>
+            <article
+              className="client-summary-card"
+              onClick={() =>
+                openPortalSection(
+                  'subscription',
+                )
+              }
+            >
               <span className="red">
                 !
               </span>
@@ -686,7 +1096,14 @@ export function ClientPortalPage({
               </div>
             </article>
 
-            <article>
+            <article
+              className="client-summary-card"
+              onClick={() =>
+                openPortalSection(
+                  'training',
+                )
+              }
+            >
               <span className="purple">
                 ⚽
               </span>
@@ -707,8 +1124,21 @@ export function ClientPortalPage({
             </article>
           </section>
 
-          <section className="client-portal-grid">
-            <article className="client-portal-panel">
+          <section
+            className={`client-portal-grid client-portal-single-grid ${
+              activeSection === 'training' ||
+              activeSection === 'attendance'
+                ? ''
+                : 'client-section-hidden'
+            }`}
+          >
+            <article
+              className={`client-portal-panel ${
+                activeSection === 'training'
+                  ? ''
+                  : 'client-portal-panel-hidden'
+              }`}
+            >
               <header>
                 <div>
                   <p>التدريب</p>
@@ -881,7 +1311,13 @@ export function ClientPortalPage({
               )}
             </article>
 
-            <article className="client-portal-panel">
+            <article
+              className={`client-portal-panel ${
+                activeSection === 'attendance'
+                  ? ''
+                  : 'client-portal-panel-hidden'
+              }`}
+            >
               <header>
                 <div>
                   <p>الحضور</p>
@@ -958,8 +1394,21 @@ export function ClientPortalPage({
             </article>
           </section>
 
-          <section className="client-portal-grid">
-            <article className="client-portal-panel client-subscription-panel">
+          <section
+            className={`client-portal-grid client-portal-single-grid ${
+              activeSection === 'subscription' ||
+              activeSection === 'payments'
+                ? ''
+                : 'client-section-hidden'
+            }`}
+          >
+            <article
+              className={`client-portal-panel client-subscription-panel ${
+                activeSection === 'subscription'
+                  ? ''
+                  : 'client-portal-panel-hidden'
+              }`}
+            >
               <header>
                 <div>
                   <p>الاشتراكات</p>
@@ -1078,7 +1527,13 @@ export function ClientPortalPage({
               )}
             </article>
 
-            <article className="client-portal-panel">
+            <article
+              className={`client-portal-panel ${
+                activeSection === 'payments'
+                  ? ''
+                  : 'client-portal-panel-hidden'
+              }`}
+            >
               <header>
                 <div>
                   <p>المدفوعات</p>
@@ -1163,6 +1618,9 @@ export function ClientPortalPage({
           </section>
         </>
       )}
+
+        </div>
+      </div>
     </main>
   );
 }

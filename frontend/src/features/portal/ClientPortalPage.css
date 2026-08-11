@@ -1118,3 +1118,532 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* ==========================================================
+   HAYMCLUB_TRAINEE_SIDEBAR_CSS_V1
+   ========================================================== */
+
+.client-portal-page.client-portal-dashboard-v1 {
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 100vh;
+  margin: 0 !important;
+  padding: 0 !important;
+  background:
+    linear-gradient(
+      145deg,
+      #f5f8ff 0%,
+      #eef3fc 100%
+    );
+}
+
+.client-portal-dashboard-shell {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  align-items: stretch;
+}
+
+.client-dashboard-sidebar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  width: 282px;
+  min-width: 282px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 18px;
+  overflow-y: auto;
+  background:
+    linear-gradient(
+      180deg,
+      #102d69 0%,
+      #173f94 54%,
+      #2457ca 100%
+    );
+  box-shadow:
+    -12px 0 38px
+    rgba(24, 54, 119, 0.14);
+  color: #fff;
+}
+
+.client-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 6px 22px;
+  border-bottom:
+    1px solid
+    rgba(255,255,255,.14);
+}
+
+.client-sidebar-logo {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 15px;
+  background:
+    linear-gradient(
+      145deg,
+      #4f78ff,
+      #2b57d6
+    );
+  box-shadow:
+    0 10px 26px
+    rgba(0,0,0,.18);
+  color: #fff;
+  font-size: 25px;
+  font-weight: 900;
+}
+
+.client-sidebar-brand > div:last-child {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.client-sidebar-brand strong {
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.client-sidebar-brand span {
+  color:
+    rgba(255,255,255,.7);
+  font-size: 12px;
+}
+
+.client-sidebar-trainee {
+  margin: 20px 0 10px;
+  padding: 15px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  border:
+    1px solid
+    rgba(255,255,255,.13);
+  border-radius: 18px;
+  background:
+    rgba(255,255,255,.09);
+  backdrop-filter:
+    blur(10px);
+}
+
+.client-sidebar-avatar {
+  width: 47px;
+  height: 47px;
+  min-width: 47px;
+  display: grid;
+  place-items: center;
+  border-radius: 15px;
+  background: #fff;
+  color: #244fb4;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.client-sidebar-trainee > div:last-child {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.client-sidebar-trainee strong {
+  overflow: hidden;
+  color: #fff;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.client-sidebar-trainee span,
+.client-sidebar-trainee small {
+  overflow: hidden;
+  color:
+    rgba(255,255,255,.67);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.client-sidebar-nav {
+  display: grid;
+  gap: 5px;
+  margin-top: 10px;
+}
+
+.client-sidebar-nav button,
+.client-sidebar-logout {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 13px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  border: 0;
+  border-radius: 13px;
+  background: transparent;
+  color:
+    rgba(255,255,255,.78);
+  text-align: right;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background .18s ease,
+    color .18s ease,
+    transform .18s ease;
+}
+
+.client-sidebar-nav button > span,
+.client-sidebar-logout > span {
+  width: 25px;
+  display: inline-grid;
+  place-items: center;
+  font-size: 16px;
+}
+
+.client-sidebar-nav button:hover {
+  background:
+    rgba(255,255,255,.09);
+  color: #fff;
+}
+
+.client-sidebar-nav button.active {
+  background: #fff;
+  color: #234faf;
+  box-shadow:
+    0 10px 25px
+    rgba(0,0,0,.13);
+}
+
+.client-sidebar-divider {
+  height: 1px;
+  margin: 8px 6px;
+  background:
+    rgba(255,255,255,.13);
+}
+
+.client-sidebar-logout {
+  margin-top: auto;
+  color: #fff;
+  background:
+    rgba(255,255,255,.09);
+}
+
+.client-sidebar-logout:hover {
+  background:
+    rgba(255,255,255,.15);
+}
+
+.client-dashboard-main {
+  min-width: 0;
+  flex: 1;
+  padding: 26px 30px 45px;
+}
+
+.client-dashboard-main
+.client-portal-header {
+  width: 100%;
+  max-width: 1320px;
+  margin: 0 auto 18px !important;
+}
+
+.client-dashboard-page-heading {
+  width: 100%;
+  max-width: 1320px;
+  margin: 0 auto 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.client-dashboard-page-heading > div {
+  display: grid;
+  gap: 3px;
+}
+
+.client-dashboard-page-heading span {
+  color: #8090aa;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.client-dashboard-page-heading h1 {
+  margin: 0;
+  color: #17213a;
+  font-size: clamp(
+    25px,
+    3vw,
+    36px
+  );
+  font-weight: 900;
+}
+
+.client-dashboard-page-heading button {
+  padding: 10px 15px;
+  border:
+    1px solid
+    #d7e0f1;
+  border-radius: 12px;
+  background: #fff;
+  color: #315bc4;
+  font-family: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.client-dashboard-main
+.client-portal-hero,
+.client-dashboard-main
+.client-trainee-profile,
+.client-dashboard-main
+.client-portal-cards,
+.client-dashboard-main
+.client-portal-grid,
+.client-feature-page {
+  width: 100%;
+  max-width: 1320px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.client-home-summary-cards {
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr))
+    !important;
+  gap: 18px !important;
+}
+
+.client-home-summary-cards
+.client-summary-card {
+  min-height: 166px;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  transition:
+    transform .2s ease,
+    box-shadow .2s ease,
+    border-color .2s ease;
+}
+
+.client-home-summary-cards
+.client-summary-card::after {
+  content: "عرض التفاصيل ←";
+  position: absolute;
+  bottom: 17px;
+  left: 19px;
+  color: #315bc4;
+  font-size: 11px;
+  font-weight: 900;
+  opacity: .72;
+}
+
+.client-home-summary-cards
+.client-summary-card:hover {
+  transform:
+    translateY(-4px);
+  border-color: #bed0fa;
+  box-shadow:
+    0 18px 40px
+    rgba(39, 76, 157, .13);
+}
+
+.client-portal-single-grid {
+  grid-template-columns:
+    minmax(0, 1fr)
+    !important;
+}
+
+.client-portal-single-grid
+.client-portal-panel {
+  width: 100%;
+}
+
+.client-portal-panel-hidden {
+  display: none !important;
+}
+
+.client-feature-page {
+  display: block;
+}
+
+.client-mobile-menu {
+  display: none;
+  width: 43px;
+  height: 43px;
+  place-items: center;
+  border: 0;
+  border-radius: 13px;
+  background: #315bd1;
+  color: #fff;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.client-sidebar-overlay {
+  display: none;
+}
+
+
+/* Tablet */
+
+@media (max-width: 1050px) {
+
+  .client-home-summary-cards {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr))
+      !important;
+  }
+
+  .client-dashboard-main {
+    padding:
+      22px 20px 40px;
+  }
+
+}
+
+
+/* Mobile */
+
+@media (max-width: 760px) {
+
+  .client-dashboard-main {
+    width: 100%;
+    padding:
+      14px 14px 34px;
+  }
+
+  .client-dashboard-sidebar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    z-index: 200;
+    width: min(82vw, 305px);
+    min-width: 0;
+    transform:
+      translateX(105%);
+    transition:
+      transform .25s ease;
+  }
+
+  .client-dashboard-sidebar.is-open {
+    transform:
+      translateX(0);
+  }
+
+  .client-sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 190;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background:
+      rgba(5, 14, 35, .47);
+    opacity: 0;
+    pointer-events: none;
+    display: block;
+    transition:
+      opacity .2s ease;
+  }
+
+  .client-sidebar-overlay.is-open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .client-mobile-menu {
+    display: grid;
+    flex: 0 0 43px;
+  }
+
+  .client-dashboard-header {
+    gap: 9px !important;
+  }
+
+  .client-dashboard-header
+  .client-portal-user {
+    margin-right: auto;
+  }
+
+  .client-dashboard-header
+  .client-portal-user button {
+    display: none;
+  }
+
+  .client-dashboard-header
+  .client-portal-user > div {
+    display: none;
+  }
+
+  .client-dashboard-page-heading {
+    margin-bottom: 15px;
+  }
+
+  .client-dashboard-page-heading button {
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+
+  .client-home-summary-cards {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr))
+      !important;
+    gap: 10px !important;
+  }
+
+  .client-home-summary-cards
+  .client-summary-card {
+    min-height: 150px;
+    padding:
+      17px 14px 38px
+      !important;
+  }
+
+  .client-home-summary-cards
+  .client-summary-card::after {
+    bottom: 13px;
+    left: 13px;
+    font-size: 9px;
+  }
+
+  .client-portal-hero {
+    border-radius:
+      22px !important;
+  }
+
+}
+
+
+/* Very small phones */
+
+@media (max-width: 390px) {
+
+  .client-home-summary-cards {
+    grid-template-columns:
+      1fr
+      !important;
+  }
+
+  .client-home-summary-cards
+  .client-summary-card {
+    min-height: 135px;
+  }
+
+}
+
+
+
+/* HAYMCLUB_TRAINEE_DIRECT_FIX_HELPERS */
+
+.client-section-hidden {
+  display: none !important;
+}
+
