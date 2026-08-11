@@ -42,6 +42,12 @@ interface ClientPortalPageProps {
 }
 
 // HAYMCLUB_TRAINEE_DASHBOARD_FINAL_V1
+// HAYMCLUB_TRAINEE_BRANDING_LANG_V1
+
+type PortalLanguage =
+  | 'ar'
+  | 'en';
+
 type PortalSection =
   | 'home'
   | 'profile'
@@ -55,17 +61,365 @@ type PortalSection =
   | 'rankings';
 
 const portalSectionTitles:
-Record<PortalSection, string> = {
-  home: 'الرئيسية',
-  profile: 'ملفي الشخصي',
-  training: 'المجموعة والمواعيد',
-  attendance: 'الحضور',
-  subscription: 'الاشتراك',
-  payments: 'المدفوعات',
-  notifications: 'الإشعارات',
-  feedback: 'التواصل مع الأكاديمية',
-  gallery: 'المعرض',
-  rankings: 'Top 10',
+Record<
+  PortalLanguage,
+  Record<PortalSection, string>
+> = {
+  ar: {
+    home: 'الرئيسية',
+    profile: 'ملفي الشخصي',
+    training: 'المجموعة والمواعيد',
+    attendance: 'الحضور',
+    subscription: 'الاشتراك',
+    payments: 'المدفوعات',
+    notifications: 'الإشعارات',
+    feedback: 'التواصل مع الأكاديمية',
+    gallery: 'المعرض',
+    rankings: 'Top 10',
+  },
+
+  en: {
+    home: 'Home',
+    profile: 'My Profile',
+    training: 'Group & Schedule',
+    attendance: 'Attendance',
+    subscription: 'Subscription',
+    payments: 'Payments',
+    notifications: 'Notifications',
+    feedback: 'Contact Academy',
+    gallery: 'Gallery',
+    rankings: 'Top 10',
+  },
+};
+
+const portalText = {
+  ar: {
+    traineePortal:
+      'بوابة المتدرب',
+
+    parentPortal:
+      'بوابة ولي الأمر والمتدرب',
+
+    logout:
+      'تسجيل الخروج',
+
+    returnHome:
+      'العودة للرئيسية',
+
+    welcome:
+      'أهلاً بك في بوابة الأكاديمية',
+
+    followTrainee:
+      'متابعة المتدرب',
+
+    heroBody:
+      'تابع الاشتراك والحضور والمجموعة والمواعيد من مكان واحد.',
+
+    chooseTrainee:
+      'اختر المتدرب',
+
+    noLinkedTitle:
+      'الحساب غير مربوط بمتدرب',
+
+    noLinkedBody:
+      'تواصل مع إدارة الأكاديمية لربط الحساب بسجل المتدرب.',
+
+    traineeProfile:
+      'ملف المتدرب',
+
+    registrationCode:
+      'كود التسجيل',
+
+    branch:
+      'الفرع',
+
+    birthDate:
+      'تاريخ الميلاد',
+
+    status:
+      'الحالة',
+
+    attendanceRate:
+      'نسبة الحضور',
+
+    recordedSessions:
+      'حصة مسجلة',
+
+    paid:
+      'المدفوع',
+
+    paymentOperation:
+      'عملية دفع',
+
+    balanceRemaining:
+      'الرصيد المتبقي',
+
+    subscription:
+      'اشتراك',
+
+    groups:
+      'المجموعات',
+
+    trainingGroup:
+      'مجموعة تدريبية',
+
+    training:
+      'التدريب',
+
+    groupsSchedule:
+      'المجموعات والمواعيد',
+
+    noEnrollment:
+      'لا يوجد تسجيل في مجموعة حاليًا.',
+
+    coach:
+      'المدرب',
+
+    joinDate:
+      'تاريخ الانضمام',
+
+    noSchedules:
+      'لا توجد مواعيد مسجلة',
+
+    venueUnknown:
+      'الملعب غير محدد',
+
+    attendance:
+      'الحضور',
+
+    attendanceSummary:
+      'ملخص الحضور والغياب',
+
+    attendanceRateLabel:
+      'معدل الحضور',
+
+    present:
+      'حاضر',
+
+    late:
+      'متأخر',
+
+    absent:
+      'غائب',
+
+    excused:
+      'معتذر',
+
+    subscriptions:
+      'الاشتراكات',
+
+    currentSubscription:
+      'الاشتراك الحالي',
+
+    noSubscription:
+      'لا يوجد اشتراك مسجل حاليًا.',
+
+    subscriptionPlan:
+      'خطة الاشتراك',
+
+    startDate:
+      'تاريخ البداية',
+
+    endDate:
+      'تاريخ النهاية',
+
+    totalSubscription:
+      'إجمالي الاشتراك',
+
+    balance:
+      'الرصيد',
+
+    payments:
+      'المدفوعات',
+
+    lastPayments:
+      'آخر عمليات الدفع',
+
+    noPayments:
+      'لا توجد عمليات دفع.',
+
+    loadingTitle:
+      'جارٍ تحميل البوابة',
+
+    loadingBody:
+      'يتم تجهيز بيانات الاشتراك والحضور والمواعيد.',
+
+    errorTitle:
+      'تعذر فتح البوابة',
+
+    retry:
+      'إعادة المحاولة',
+
+    arabic:
+      'العربية',
+
+    english:
+      'English',
+  },
+
+  en: {
+    traineePortal:
+      'Trainee Portal',
+
+    parentPortal:
+      'Parent & Trainee Portal',
+
+    logout:
+      'Logout',
+
+    returnHome:
+      'Back to Home',
+
+    welcome:
+      'Welcome to your academy portal',
+
+    followTrainee:
+      'Trainee Dashboard',
+
+    heroBody:
+      'Track subscriptions, attendance, groups and schedules in one place.',
+
+    chooseTrainee:
+      'Choose Trainee',
+
+    noLinkedTitle:
+      'No trainee linked',
+
+    noLinkedBody:
+      'Contact the academy administration to link this account to a trainee.',
+
+    traineeProfile:
+      'Trainee Profile',
+
+    registrationCode:
+      'Registration Code',
+
+    branch:
+      'Branch',
+
+    birthDate:
+      'Date of Birth',
+
+    status:
+      'Status',
+
+    attendanceRate:
+      'Attendance Rate',
+
+    recordedSessions:
+      'recorded sessions',
+
+    paid:
+      'Paid',
+
+    paymentOperation:
+      'payments',
+
+    balanceRemaining:
+      'Remaining Balance',
+
+    subscription:
+      'subscriptions',
+
+    groups:
+      'Groups',
+
+    trainingGroup:
+      'training groups',
+
+    training:
+      'Training',
+
+    groupsSchedule:
+      'Groups & Schedule',
+
+    noEnrollment:
+      'No active group enrollment.',
+
+    coach:
+      'Coach',
+
+    joinDate:
+      'Join Date',
+
+    noSchedules:
+      'No schedules available',
+
+    venueUnknown:
+      'Venue not specified',
+
+    attendance:
+      'Attendance',
+
+    attendanceSummary:
+      'Attendance Summary',
+
+    attendanceRateLabel:
+      'Attendance Rate',
+
+    present:
+      'Present',
+
+    late:
+      'Late',
+
+    absent:
+      'Absent',
+
+    excused:
+      'Excused',
+
+    subscriptions:
+      'Subscriptions',
+
+    currentSubscription:
+      'Current Subscription',
+
+    noSubscription:
+      'No subscription is currently registered.',
+
+    subscriptionPlan:
+      'Subscription Plan',
+
+    startDate:
+      'Start Date',
+
+    endDate:
+      'End Date',
+
+    totalSubscription:
+      'Total Subscription',
+
+    balance:
+      'Balance',
+
+    payments:
+      'Payments',
+
+    lastPayments:
+      'Latest Payments',
+
+    noPayments:
+      'No payments found.',
+
+    loadingTitle:
+      'Loading Portal',
+
+    loadingBody:
+      'Preparing subscription, attendance and schedule data.',
+
+    errorTitle:
+      'Unable to open portal',
+
+    retry:
+      'Try Again',
+
+    arabic:
+      'العربية',
+
+    english:
+      'English',
+  },
 };
 
 type UnknownRecord =
@@ -168,14 +522,18 @@ function fullName(
 
 function formatNumber(
   value: number,
+  language: PortalLanguage = 'ar',
 ): string {
   return new Intl.NumberFormat(
-    'ar-EG',
+    language === 'ar'
+      ? 'ar-EG'
+      : 'en-US',
   ).format(value);
 }
 
 function formatDate(
   value: unknown,
+  language: PortalLanguage = 'ar',
 ): string {
   const text =
     textValue(value, '');
@@ -197,7 +555,9 @@ function formatDate(
   }
 
   return new Intl.DateTimeFormat(
-    'ar-EG',
+    language === 'ar'
+      ? 'ar-EG'
+      : 'en-US',
     {
       year: 'numeric',
       month: 'long',
@@ -208,9 +568,12 @@ function formatDate(
 
 function formatMoney(
   value: number,
+  language: PortalLanguage = 'ar',
 ): string {
   return new Intl.NumberFormat(
-    'ar-EG',
+    language === 'ar'
+      ? 'ar-EG'
+      : 'en-US',
     {
       style: 'currency',
       currency: 'EGP',
@@ -221,11 +584,12 @@ function formatMoney(
 
 function statusLabel(
   status: unknown,
+  language: PortalLanguage = 'ar',
 ): string {
   const value =
     textValue(status);
 
-  const labels:
+  const arabic:
   Record<string, string> = {
     ACTIVE: 'نشط',
     PENDING: 'قيد الانتظار',
@@ -234,9 +598,26 @@ function statusLabel(
     CANCELLED: 'ملغي',
     COMPLETED: 'مكتمل',
     WAITLISTED: 'قائمة انتظار',
+    INACTIVE: 'غير نشط',
   };
 
-  return labels[value] ?? value;
+  const english:
+  Record<string, string> = {
+    ACTIVE: 'Active',
+    PENDING: 'Pending',
+    PAUSED: 'Paused',
+    EXPIRED: 'Expired',
+    CANCELLED: 'Cancelled',
+    COMPLETED: 'Completed',
+    WAITLISTED: 'Waitlisted',
+    INACTIVE: 'Inactive',
+  };
+
+  return (
+    language === 'ar'
+      ? arabic[value]
+      : english[value]
+  ) ?? value;
 }
 
 function enrollmentGroup(
@@ -274,6 +655,51 @@ function subscriptionList(
   return [];
 }
 
+function resolvePortalMediaUrl(
+  value: string | null | undefined,
+): string | null {
+  const raw =
+    value?.trim();
+
+  if (!raw) {
+    return null;
+  }
+
+  if (
+    /^https?:\/\//i.test(raw) ||
+    raw.startsWith('data:') ||
+    raw.startsWith('blob:')
+  ) {
+    return raw;
+  }
+
+  const configuredApi =
+    String(
+      import.meta.env
+        .VITE_API_BASE_URL ??
+      '',
+    ).trim();
+
+  const origin =
+    configuredApi
+      ? configuredApi
+          .replace(
+            /\/api\/?$/i,
+            '',
+          )
+          .replace(
+            /\/$/,
+            '',
+          )
+      : window.location.origin;
+
+  return `${origin}/${raw.replace(
+    /^\/+/
+    ,
+    '',
+  )}`;
+}
+
 export function ClientPortalPage({
   onLogout,
 }: ClientPortalPageProps) {
@@ -282,6 +708,66 @@ export function ClientPortalPage({
     queryFn: getClientPortal,
     staleTime: 30_000,
   });
+
+  const [
+    language,
+    setLanguage,
+  ] = useState<PortalLanguage>(
+    () =>
+      window.localStorage
+        .getItem(
+          'haymclub-portal-language',
+        ) === 'en'
+        ? 'en'
+        : 'ar',
+  );
+
+  const isArabic =
+    language === 'ar';
+
+  const copy =
+    portalText[language];
+
+  const formatPortalNumber = (
+    value: number,
+  ) =>
+    formatNumber(
+      value,
+      language,
+    );
+
+  const formatPortalDate = (
+    value: unknown,
+  ) =>
+    formatDate(
+      value,
+      language,
+    );
+
+  const formatPortalMoney = (
+    value: number,
+  ) =>
+    formatMoney(
+      value,
+      language,
+    );
+
+  const portalStatusLabel = (
+    value: unknown,
+  ) =>
+    statusLabel(
+      value,
+      language,
+    );
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      'haymclub-portal-language',
+      language,
+    );
+  }, [
+    language,
+  ]);
 
   const [
     selectedTraineeId,
@@ -348,6 +834,31 @@ export function ClientPortalPage({
         data,
         selectedTraineeId,
       ],
+    );
+
+  const activeAcademyMembership =
+    data?.user.memberships.find(
+      (membership) =>
+        membership.isActive &&
+        membership.academyId ===
+          selected?.trainee.academyId,
+    );
+
+  const academyName =
+    selected?.academy?.name ??
+    activeAcademyMembership
+      ?.academy?.name ??
+    'Haymclub';
+
+  const academyLogoUrl =
+    resolvePortalMediaUrl(
+      selected?.academy?.logoUrl,
+    );
+
+  const traineeImageUrl =
+    resolvePortalMediaUrl(
+      selected?.trainee
+        .profileImageUrl,
     );
 
   const enrollments =
@@ -421,17 +932,16 @@ export function ClientPortalPage({
     return (
       <main
         className="client-portal-state"
-        dir="rtl"
+        dir={isArabic ? 'rtl' : 'ltr'}
       >
         <div className="client-portal-loader" />
 
         <h1>
-          جارٍ تحميل البوابة
+          {copy.loadingTitle}
         </h1>
 
         <p>
-          يتم تجهيز بيانات الاشتراك
-          والحضور والمواعيد.
+          {copy.loadingBody}
         </p>
       </main>
     );
@@ -444,10 +954,10 @@ export function ClientPortalPage({
     return (
       <main
         className="client-portal-state"
-        dir="rtl"
+        dir={isArabic ? 'rtl' : 'ltr'}
       >
         <h1>
-          تعذر فتح البوابة
+          {copy.errorTitle}
         </h1>
 
         <p>
@@ -463,7 +973,7 @@ export function ClientPortalPage({
               void query.refetch()
             }
           >
-            إعادة المحاولة
+            {copy.retry}
           </button>
 
           <button
@@ -471,7 +981,7 @@ export function ClientPortalPage({
             className="secondary"
             onClick={onLogout}
           >
-            تسجيل الخروج
+            {copy.logout}
           </button>
         </div>
       </main>
@@ -481,7 +991,7 @@ export function ClientPortalPage({
   return (
     <main
       className="client-portal-page client-portal-dashboard-v1"
-      dir="rtl"
+      dir={isArabic ? 'rtl' : 'ltr'}
     >
       <div className="client-portal-dashboard-shell">
 
@@ -509,23 +1019,74 @@ export function ClientPortalPage({
           <div className="client-sidebar-brand">
 
             <div className="client-sidebar-logo">
-              H
+              {academyLogoUrl ? (
+                <img
+                  src={academyLogoUrl}
+                  alt={academyName}
+                />
+              ) : (
+                academyName
+                  .charAt(0)
+                  .toUpperCase()
+              )}
             </div>
 
             <div>
-              <strong>Haymclub</strong>
-              <span>بوابة المتدرب</span>
+              <strong>
+                {academyName}
+              </strong>
+
+              <span>
+                {copy.traineePortal}
+              </span>
             </div>
 
+          </div>
+
+          <div className="client-language-switch">
+            <button
+              type="button"
+              className={
+                language === 'ar'
+                  ? 'active'
+                  : ''
+              }
+              onClick={() =>
+                setLanguage('ar')
+              }
+            >
+              العربية
+            </button>
+
+            <button
+              type="button"
+              className={
+                language === 'en'
+                  ? 'active'
+                  : ''
+              }
+              onClick={() =>
+                setLanguage('en')
+              }
+            >
+              English
+            </button>
           </div>
 
           {selected && (
             <div className="client-sidebar-trainee">
 
               <div className="client-sidebar-avatar">
-                {selected.trainee
-                  .firstName
-                  .charAt(0)}
+                {traineeImageUrl ? (
+                  <img
+                    src={traineeImageUrl}
+                    alt={`${selected.trainee.firstName} ${selected.trainee.lastName}`}
+                  />
+                ) : (
+                  selected.trainee
+                    .firstName
+                    .charAt(0)
+                )}
               </div>
 
               <div>
@@ -565,7 +1126,7 @@ export function ClientPortalPage({
               }
             >
               <span>⌂</span>
-              الرئيسية
+              {portalSectionTitles[language].home}
             </button>
 
             <button
@@ -580,7 +1141,7 @@ export function ClientPortalPage({
               }
             >
               <span>👤</span>
-              ملفي الشخصي
+              {portalSectionTitles[language].profile}
             </button>
 
             <button
@@ -598,7 +1159,7 @@ export function ClientPortalPage({
               }
             >
               <span>💳</span>
-              الاشتراك
+              {portalSectionTitles[language].subscription}
             </button>
 
             <button
@@ -616,7 +1177,7 @@ export function ClientPortalPage({
               }
             >
               <span>✓</span>
-              الحضور
+              {portalSectionTitles[language].attendance}
             </button>
 
             <button
@@ -634,7 +1195,7 @@ export function ClientPortalPage({
               }
             >
               <span>⚽</span>
-              المجموعة والمواعيد
+              {portalSectionTitles[language].training}
             </button>
 
             <button
@@ -652,7 +1213,7 @@ export function ClientPortalPage({
               }
             >
               <span>⌁</span>
-              المدفوعات
+              {portalSectionTitles[language].payments}
             </button>
 
             <div className="client-sidebar-divider" />
@@ -672,7 +1233,7 @@ export function ClientPortalPage({
               }
             >
               <span>🔔</span>
-              الإشعارات
+              {portalSectionTitles[language].notifications}
             </button>
 
             <button
@@ -687,7 +1248,7 @@ export function ClientPortalPage({
               }
             >
               <span>✉</span>
-              التواصل مع الأكاديمية
+              {portalSectionTitles[language].feedback}
             </button>
 
             <button
@@ -702,7 +1263,7 @@ export function ClientPortalPage({
               }
             >
               <span>▣</span>
-              المعرض
+              {portalSectionTitles[language].gallery}
             </button>
 
             <button
@@ -748,15 +1309,26 @@ export function ClientPortalPage({
           ☰
         </button>
         <div className="client-portal-brand">
-          <span>H</span>
+          <span className="client-portal-brand-logo">
+            {academyLogoUrl ? (
+              <img
+                src={academyLogoUrl}
+                alt={academyName}
+              />
+            ) : (
+              academyName
+                .charAt(0)
+                .toUpperCase()
+            )}
+          </span>
 
           <div>
             <strong>
-              Haymclub
+              {academyName}
             </strong>
 
             <small>
-              بوابة ولي الأمر والمتدرب
+              {copy.parentPortal}
             </small>
           </div>
         </div>
@@ -784,11 +1356,13 @@ export function ClientPortalPage({
       <div className="client-dashboard-page-heading">
 
         <div>
-          <span>بوابة المتدرب</span>
+          <span>{copy.traineePortal}</span>
 
           <h1>
             {
               portalSectionTitles[
+                language
+              ][
                 activeSection
               ]
             }
@@ -802,7 +1376,7 @@ export function ClientPortalPage({
               openPortalSection('home')
             }
           >
-            العودة للرئيسية
+            {copy.returnHome}
           </button>
         )}
 
@@ -817,23 +1391,21 @@ export function ClientPortalPage({
       >
         <div>
           <p>
-            أهلاً بك في بوابة الأكاديمية
+            {copy.welcome}
           </p>
 
           <h1>
-            متابعة المتدرب
+            {copy.followTrainee}
           </h1>
 
           <span>
-            تابع الاشتراك والحضور
-            والمجموعة والمواعيد من مكان
-            واحد.
+            {copy.heroBody}
           </span>
         </div>
 
         {data.trainees.length > 1 && (
           <label>
-            اختر المتدرب
+            {copy.chooseTrainee}
 
             <select
               value={
@@ -872,12 +1444,11 @@ export function ClientPortalPage({
           <div>👨‍👩‍👦</div>
 
           <h2>
-            الحساب غير مربوط بمتدرب
+            {copy.noLinkedTitle}
           </h2>
 
           <p>
-            تواصل مع إدارة الأكاديمية
-            لربط الحساب بسجل المتدرب.
+            {copy.noLinkedBody}
           </p>
         </section>
       ) : (
@@ -890,12 +1461,20 @@ export function ClientPortalPage({
             }`}
           >
             <div className="client-trainee-avatar">
-              {selected.trainee
-                .firstName.charAt(0)}
+              {traineeImageUrl ? (
+                <img
+                  src={traineeImageUrl}
+                  alt={`${selected.trainee.firstName} ${selected.trainee.lastName}`}
+                />
+              ) : (
+                selected.trainee
+                  .firstName
+                  .charAt(0)
+              )}
             </div>
 
             <div>
-              <p>ملف المتدرب</p>
+              <p>{copy.traineeProfile}</p>
 
               <h2>
                 {selected.trainee
@@ -905,7 +1484,7 @@ export function ClientPortalPage({
               </h2>
 
               <span>
-                كود التسجيل:{' '}
+                {copy.registrationCode}:{' '}
                 <strong>
                   {
                     selected.trainee
@@ -917,7 +1496,7 @@ export function ClientPortalPage({
 
             <div className="client-trainee-profile-details">
               <div>
-                <span>الفرع</span>
+                <span>{copy.branch}</span>
                 <strong>
                   {selected.trainee
                     .branch?.name ??
@@ -926,9 +1505,9 @@ export function ClientPortalPage({
               </div>
 
               <div>
-                <span>تاريخ الميلاد</span>
+                <span>{copy.birthDate}</span>
                 <strong>
-                  {formatDate(
+                  {formatPortalDate(
                     selected.trainee
                       .dateOfBirth,
                   )}
@@ -936,9 +1515,9 @@ export function ClientPortalPage({
               </div>
 
               <div>
-                <span>الحالة</span>
+                <span>{copy.status}</span>
                 <strong>
-                  {statusLabel(
+                  {portalStatusLabel(
                     selected.trainee
                       .status,
                   )}
@@ -1016,10 +1595,10 @@ export function ClientPortalPage({
               </span>
 
               <div>
-                <p>نسبة الحضور</p>
+                <p>{copy.attendanceRate}</p>
 
                 <strong>
-                  {formatNumber(
+                  {formatPortalNumber(
                     attendance
                       ?.attendanceRate ??
                       0,
@@ -1033,7 +1612,7 @@ export function ClientPortalPage({
                       ?.markedSessions ??
                     0
                   }{' '}
-                  حصة مسجلة
+                  {copy.recordedSessions}
                 </small>
               </div>
             </article>
@@ -1051,17 +1630,17 @@ export function ClientPortalPage({
               </span>
 
               <div>
-                <p>المدفوع</p>
+                <p>{copy.paid}</p>
 
                 <strong>
-                  {formatMoney(
+                  {formatPortalMoney(
                     totalPaid,
                   )}
                 </strong>
 
                 <small>
                   {payments.length}{' '}
-                  عملية دفع
+                  {copy.paymentOperation}
                 </small>
               </div>
             </article>
@@ -1079,10 +1658,10 @@ export function ClientPortalPage({
               </span>
 
               <div>
-                <p>الرصيد المتبقي</p>
+                <p>{copy.balanceRemaining}</p>
 
                 <strong>
-                  {formatMoney(
+                  {formatPortalMoney(
                     totalBalance,
                   )}
                 </strong>
@@ -1091,7 +1670,7 @@ export function ClientPortalPage({
                   {
                     subscriptions.length
                   }{' '}
-                  اشتراك
+                  {copy.subscription}
                 </small>
               </div>
             </article>
@@ -1109,16 +1688,16 @@ export function ClientPortalPage({
               </span>
 
               <div>
-                <p>المجموعات</p>
+                <p>{copy.groups}</p>
 
                 <strong>
-                  {formatNumber(
+                  {formatPortalNumber(
                     enrollments.length,
                   )}
                 </strong>
 
                 <small>
-                  مجموعة تدريبية
+                  {copy.trainingGroup}
                 </small>
               </div>
             </article>
@@ -1141,9 +1720,9 @@ export function ClientPortalPage({
             >
               <header>
                 <div>
-                  <p>التدريب</p>
+                  <p>{copy.training}</p>
                   <h2>
-                    المجموعات والمواعيد
+                    {copy.groupsSchedule}
                   </h2>
                 </div>
               </header>
@@ -1151,8 +1730,7 @@ export function ClientPortalPage({
               {enrollments.length ===
               0 ? (
                 <div className="client-panel-empty">
-                  لا يوجد تسجيل في
-                  مجموعة حاليًا.
+                  {copy.noEnrollment}
                 </div>
               ) : (
                 <div className="client-enrollments">
@@ -1202,7 +1780,7 @@ export function ClientPortalPage({
                             </div>
 
                             <b>
-                              {statusLabel(
+                              {portalStatusLabel(
                                 getPath(
                                   enrollment,
                                   'status',
@@ -1214,7 +1792,7 @@ export function ClientPortalPage({
                           <div className="client-group-info">
                             <div>
                               <span>
-                                المدرب
+                                {copy.coach}
                               </span>
 
                               <strong>
@@ -1226,11 +1804,11 @@ export function ClientPortalPage({
 
                             <div>
                               <span>
-                                تاريخ الانضمام
+                                {copy.joinDate}
                               </span>
 
                               <strong>
-                                {formatDate(
+                                {formatPortalDate(
                                   getPath(
                                     enrollment,
                                     'enrollmentDate',
@@ -1244,8 +1822,7 @@ export function ClientPortalPage({
                             {schedules.length ===
                             0 ? (
                               <span>
-                                لا توجد مواعيد
-                                مسجلة
+                                {copy.noSchedules}
                               </span>
                             ) : (
                               schedules.map(
@@ -1320,16 +1897,16 @@ export function ClientPortalPage({
             >
               <header>
                 <div>
-                  <p>الحضور</p>
+                  <p>{copy.attendance}</p>
                   <h2>
-                    ملخص الحضور والغياب
+                    {copy.attendanceSummary}
                   </h2>
                 </div>
               </header>
 
               <div className="client-attendance-circle">
                 <strong>
-                  {formatNumber(
+                  {formatPortalNumber(
                     attendance
                       ?.attendanceRate ??
                       0,
@@ -1338,13 +1915,13 @@ export function ClientPortalPage({
                 </strong>
 
                 <span>
-                  معدل الحضور
+                  {copy.attendanceRateLabel}
                 </span>
               </div>
 
               <div className="client-attendance-list">
                 <div>
-                  <span>حاضر</span>
+                  <span>{copy.present}</span>
                   <strong className="success">
                     {
                       attendance
@@ -1356,7 +1933,7 @@ export function ClientPortalPage({
                 </div>
 
                 <div>
-                  <span>متأخر</span>
+                  <span>{copy.late}</span>
                   <strong className="warning">
                     {
                       attendance
@@ -1368,7 +1945,7 @@ export function ClientPortalPage({
                 </div>
 
                 <div>
-                  <span>غائب</span>
+                  <span>{copy.absent}</span>
                   <strong className="danger">
                     {
                       attendance
@@ -1380,7 +1957,7 @@ export function ClientPortalPage({
                 </div>
 
                 <div>
-                  <span>معتذر</span>
+                  <span>{copy.excused}</span>
                   <strong>
                     {
                       attendance
@@ -1411,18 +1988,17 @@ export function ClientPortalPage({
             >
               <header>
                 <div>
-                  <p>الاشتراكات</p>
+                  <p>{copy.subscriptions}</p>
 
                   <h2>
-                    الاشتراك الحالي
+                    {copy.currentSubscription}
                   </h2>
                 </div>
               </header>
 
               {!activeSubscription ? (
                 <div className="client-panel-empty">
-                  لا يوجد اشتراك مسجل
-                  حاليًا.
+                  {copy.noSubscription}
                 </div>
               ) : (
                 <>
@@ -1449,7 +2025,7 @@ export function ClientPortalPage({
                     </div>
 
                     <b>
-                      {statusLabel(
+                      {portalStatusLabel(
                         getPath(
                           activeSubscription,
                           'status',
@@ -1461,11 +2037,11 @@ export function ClientPortalPage({
                   <div className="client-subscription-details">
                     <div>
                       <span>
-                        تاريخ البداية
+                        {copy.startDate}
                       </span>
 
                       <strong>
-                        {formatDate(
+                        {formatPortalDate(
                           getPath(
                             activeSubscription,
                             'startDate',
@@ -1476,11 +2052,11 @@ export function ClientPortalPage({
 
                     <div>
                       <span>
-                        تاريخ النهاية
+                        {copy.endDate}
                       </span>
 
                       <strong>
-                        {formatDate(
+                        {formatPortalDate(
                           getPath(
                             activeSubscription,
                             'endDate',
@@ -1491,11 +2067,11 @@ export function ClientPortalPage({
 
                     <div>
                       <span>
-                        إجمالي الاشتراك
+                        {copy.totalSubscription}
                       </span>
 
                       <strong>
-                        {formatMoney(
+                        {formatPortalMoney(
                           numberValue(
                             getPath(
                               activeSubscription,
@@ -1508,11 +2084,11 @@ export function ClientPortalPage({
 
                     <div>
                       <span>
-                        الرصيد
+                        {copy.balance}
                       </span>
 
                       <strong className="danger">
-                        {formatMoney(
+                        {formatPortalMoney(
                           numberValue(
                             getPath(
                               activeSubscription,
@@ -1536,17 +2112,17 @@ export function ClientPortalPage({
             >
               <header>
                 <div>
-                  <p>المدفوعات</p>
+                  <p>{copy.payments}</p>
 
                   <h2>
-                    آخر عمليات الدفع
+                    {copy.lastPayments}
                   </h2>
                 </div>
               </header>
 
               {payments.length === 0 ? (
                 <div className="client-panel-empty">
-                  لا توجد عمليات دفع.
+                  {copy.noPayments}
                 </div>
               ) : (
                 <div className="client-payments-list">
@@ -1570,7 +2146,7 @@ export function ClientPortalPage({
                         >
                           <div>
                             <strong>
-                              {formatMoney(
+                              {formatPortalMoney(
                                 numberValue(
                                   getPath(
                                     payment,
@@ -1601,7 +2177,7 @@ export function ClientPortalPage({
                             </strong>
 
                             <span>
-                              {formatDate(
+                              {formatPortalDate(
                                 getPath(
                                   payment,
                                   'paidAt',

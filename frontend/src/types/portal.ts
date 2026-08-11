@@ -16,6 +16,7 @@ export interface PortalAcademy {
   id: string;
   name: string;
   slug?: string;
+  logoUrl?: string | null;
   currency?: string;
 }
 
@@ -105,6 +106,8 @@ export interface ClientTrainingSession {
 }
 
 export interface ClientPortalTrainee {
+  academy: PortalAcademy | null;
+
   link: {
     id: string;
     relationship: PortalRelationship;
