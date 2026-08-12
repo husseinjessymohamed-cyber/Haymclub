@@ -102,10 +102,10 @@ interface LoginPageProps {
 function LoginPage({
   onSuccess,
 }: LoginPageProps) {
+  // HAYMCLUB_EMPTY_LOGIN_IDENTIFIER_V2
   const [email, setEmail] =
-    useState(
-      'admin@haymclub.com',
-    );
+    useState('');
+
 
   const [password, setPassword] =
     useState('');
