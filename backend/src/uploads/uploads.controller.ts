@@ -44,6 +44,12 @@ import {
 } from '../auth/decorators/roles.decorator';
 
 import {
+  Public,
+} from '../auth/decorators/public.decorator';
+
+// HAYMCLUB_PUBLIC_ACADEMY_LOGO_V1
+
+import {
   AcademyRole,
 } from '../memberships/entities/academy-membership.entity';
 
@@ -402,6 +408,7 @@ export class UploadsController {
   }
 
 
+  @Public()
   @Get(
     'academy-logo/:filename',
   )
