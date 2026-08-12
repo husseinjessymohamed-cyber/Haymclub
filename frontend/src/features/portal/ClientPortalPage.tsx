@@ -5,6 +5,13 @@ import {
 } from 'react';
 
 import {
+  Capacitor,
+  CapacitorHttp,
+} from '@capacitor/core';
+
+// HAYMCLUB_PORTAL_NATIVE_DATA_IMAGE_V1
+
+import {
   useQuery,
 } from '@tanstack/react-query';
 
@@ -15,6 +22,7 @@ import {
 
 import {
   api,
+  AUTH_TOKEN_KEY,
 } from '../../lib/api';
 
 // HAYMCLUB_PORTAL_AUTH_IMAGE_LOADER_V1
@@ -707,6 +715,219 @@ function resolvePortalMediaUrl(
 }
 
 
+function arrayBufferToBase64(
+  value: ArrayBuffer,
+): string {
+  const bytes =
+    new Uint8Array(
+      value,
+    );
+
+  let binary = '';
+
+  const chunkSize =
+    0x8000;
+
+  for (
+    let offset = 0;
+    offset < bytes.length;
+    offset += chunkSize
+  ) {
+    const chunk =
+      bytes.subarray(
+        offset,
+        Math.min(
+          offset + chunkSize,
+          bytes.length,
+        ),
+      );
+
+    binary +=
+      String.fromCharCode(
+        ...chunk,
+      );
+  }
+
+  return btoa(binary);
+}
+
+
+function getResponseContentType(
+  headers:
+    | Record<string, unknown>
+    | undefined,
+  fallback = 'image/jpeg',
+): string {
+  if (!headers) {
+    return fallback;
+  }
+
+  for (
+    const [key, value]
+    of Object.entries(headers)
+  ) {
+    if (
+      key.toLowerCase() ===
+        'content-type' &&
+      typeof value === 'string'
+    ) {
+      return (
+        value
+          .split(';')[0]
+          .trim() ||
+        fallback
+      );
+    }
+  }
+
+  return fallback;
+}
+
+
+function nativeResponseToDataUrl(
+  data: unknown,
+  mimeType: string,
+): string | null {
+  if (
+    typeof data === 'string'
+  ) {
+    const clean =
+      data.trim();
+
+    if (!clean) {
+      return null;
+    }
+
+    if (
+      clean.startsWith(
+        'data:',
+      )
+    ) {
+      return clean;
+    }
+
+    return (
+      `data:${mimeType};base64,` +
+      clean.replace(
+        /\s+/g,
+        '',
+      )
+    );
+  }
+
+  if (
+    data instanceof
+      ArrayBuffer
+  ) {
+    return (
+      `data:${mimeType};base64,` +
+      arrayBufferToBase64(
+        data,
+      )
+    );
+  }
+
+  if (
+    ArrayBuffer.isView(
+      data,
+    )
+  ) {
+    const view =
+      data as ArrayBufferView;
+
+    const copied =
+      new Uint8Array(
+        view.byteLength,
+      );
+
+    copied.set(
+      new Uint8Array(
+        view.buffer,
+        view.byteOffset,
+        view.byteLength,
+      ),
+    );
+
+    return (
+      `data:${mimeType};base64,` +
+      arrayBufferToBase64(
+        copied.buffer,
+      )
+    );
+  }
+
+  if (
+    Array.isArray(data)
+  ) {
+    const bytes =
+      Uint8Array.from(
+        data.map(
+          (item) =>
+            Number(item) || 0,
+        ),
+      );
+
+    return (
+      `data:${mimeType};base64,` +
+      arrayBufferToBase64(
+        bytes.buffer,
+      )
+    );
+  }
+
+  return null;
+}
+
+
+function blobToDataUrl(
+  blob: Blob,
+): Promise<string> {
+  return new Promise(
+    (
+      resolve,
+      reject,
+    ) => {
+      const reader =
+        new FileReader();
+
+      reader.onload =
+        () => {
+          if (
+            typeof reader.result ===
+              'string'
+          ) {
+            resolve(
+              reader.result,
+            );
+
+            return;
+          }
+
+          reject(
+            new Error(
+              'Invalid image result',
+            ),
+          );
+        };
+
+      reader.onerror =
+        () => {
+          reject(
+            reader.error ??
+            new Error(
+              'Image read failed',
+            ),
+          );
+        };
+
+      reader.readAsDataURL(
+        blob,
+      );
+    },
+  );
+}
+
+
 function usePortalAuthenticatedImage(
   value:
     | string
@@ -721,40 +942,162 @@ function usePortalAuthenticatedImage(
   const [
     finalUrl,
     setFinalUrl,
-  ] = useState<string | null>(
+  ] = useState<
+    string |
+    null
+  >(
     null,
   );
 
   useEffect(() => {
+
     if (!resolved) {
       setFinalUrl(null);
 
       return;
     }
 
-    const isApiUpload =
-      /\/api\/uploads\//i.test(
+
+    /*
+     * شعار الأكاديمية أصبح Public.
+     * نعرضه مباشرة بدون Blob
+     * وبدون المرور عبر Native bridge.
+     */
+    if (
+      /\/api\/uploads\/academy-logo\//i
+        .test(
+          resolved,
+        )
+    ) {
+      setFinalUrl(
         resolved,
       );
-
-    if (!isApiUpload) {
-      setFinalUrl(resolved);
 
       return;
     }
 
+
+    const protectedUpload =
+      /\/api\/uploads\//i
+        .test(
+          resolved,
+        );
+
+
+    if (!protectedUpload) {
+      setFinalUrl(
+        resolved,
+      );
+
+      return;
+    }
+
+
     let cancelled =
       false;
 
-    let objectUrl:
-      string |
-      null =
-        null;
+    setFinalUrl(
+      null,
+    );
 
-    setFinalUrl(null);
 
+    /*
+     * Android / iOS
+     *
+     * لا نستخدم Blob URL.
+     * CapacitorHttp يرجع البيانات
+     * ونحولها إلى Data URL.
+     */
+    if (
+      Capacitor
+        .isNativePlatform()
+    ) {
+      const token =
+        localStorage.getItem(
+          AUTH_TOKEN_KEY,
+        );
+
+      const headers:
+      Record<string, string> = {
+        Accept:
+          'image/*',
+      };
+
+      if (token) {
+        headers.Authorization =
+          `Bearer ${token}`;
+      }
+
+      void CapacitorHttp
+        .get({
+          url:
+            resolved,
+
+          headers,
+
+          responseType:
+            'arraybuffer',
+        })
+        .then(
+          (
+            response,
+          ) => {
+            if (
+              cancelled ||
+              response.status < 200 ||
+              response.status >= 300
+            ) {
+              return;
+            }
+
+            const mimeType =
+              getResponseContentType(
+                response.headers,
+                'image/jpeg',
+              );
+
+            const dataUrl =
+              nativeResponseToDataUrl(
+                response.data,
+                mimeType,
+              );
+
+            if (
+              !cancelled &&
+              dataUrl
+            ) {
+              setFinalUrl(
+                dataUrl,
+              );
+            }
+          },
+        )
+        .catch(
+          () => {
+            if (!cancelled) {
+              setFinalUrl(
+                null,
+              );
+            }
+          },
+        );
+
+      return () => {
+        cancelled =
+          true;
+      };
+    }
+
+
+    /*
+     * Website
+     *
+     * نخلي Axios للويب،
+     * لكن نحول Blob إلى data URL
+     * بدل URL.createObjectURL.
+     */
     void api
-      .get(
+      .get<Blob>(
         resolved,
         {
           responseType:
@@ -762,21 +1105,23 @@ function usePortalAuthenticatedImage(
         },
       )
       .then(
-        (
+        async (
           response,
         ) => {
           if (cancelled) {
             return;
           }
 
-          objectUrl =
-            URL.createObjectURL(
+          const dataUrl =
+            await blobToDataUrl(
               response.data,
             );
 
-          setFinalUrl(
-            objectUrl,
-          );
+          if (!cancelled) {
+            setFinalUrl(
+              dataUrl,
+            );
+          }
         },
       )
       .catch(
@@ -789,22 +1134,20 @@ function usePortalAuthenticatedImage(
         },
       );
 
+
     return () => {
       cancelled =
         true;
-
-      if (objectUrl) {
-        URL.revokeObjectURL(
-          objectUrl,
-        );
-      }
     };
+
   }, [
     resolved,
   ]);
 
+
   return finalUrl;
 }
+
 
 export function ClientPortalPage({
   onLogout,
