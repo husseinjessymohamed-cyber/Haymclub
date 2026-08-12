@@ -70,6 +70,7 @@ const ACADEMY_FEATURE_OPTIONS: ReadonlyArray<{
       "التقارير والتحليلات وتصدير البيانات.",
   },
 ];
+// HAYMCLUB_SUPER_ADMIN_LOGO_UPLOAD_V3
 interface Academy {
   id: string;
   name: string;
@@ -78,6 +79,8 @@ interface Academy {
   slug?: string | null;
   email?: string | null;
   phone?: string | null;
+  logoUrl?: string | null;
+  logo_url?: string | null;
   status?: string | null;
   isActive?: boolean;
   is_active?: boolean;
@@ -169,6 +172,51 @@ function apiBase(): string {
   return "/api";
 }
 
+function absoluteApiAssetUrl(
+  value: string,
+): string {
+  const trimmed =
+    value.trim();
+
+  if (
+    /^https?:\/\//i.test(
+      trimmed,
+    )
+  ) {
+    return trimmed;
+  }
+
+  const base =
+    apiBase();
+
+  if (
+    /^https?:\/\//i.test(
+      base,
+    )
+  ) {
+    const origin =
+      base.replace(
+        /\/api\/?$/i,
+        '',
+      );
+
+    return (
+      origin +
+      (
+        trimmed.startsWith('/')
+          ? trimmed
+          : `/${trimmed}`
+      )
+    );
+  }
+
+  return new URL(
+    trimmed,
+    window.location.origin,
+  ).toString();
+}
+
+
 function unwrap<T>(value: unknown): T {
   if (typeof value === "object" && value !== null && "data" in value) {
     return (
@@ -251,12 +299,25 @@ export function SuperAdminAcademiesSection() {
 
   const [success, setSuccess] = useState<string | null>(null);
 
+  const [
+    academyLogoFile,
+    setAcademyLogoFile,
+  ] = useState<File | null>(
+    null,
+  );
+
+  const [
+    academyLogoPreview,
+    setAcademyLogoPreview,
+  ] = useState("");
+
   const [academyForm, setAcademyForm] = useState({
     name: "",
     legalName: "",
     slug: "",
     email: "",
     phone: "",
+    logoUrl: "",
     status: "ACTIVE",
     country: "EG",
     currency: "EGP",
@@ -333,6 +394,101 @@ export function SuperAdminAcademiesSection() {
     [],
   );
 
+
+  const uploadAcademyLogo =
+    useCallback(
+      async (
+        file: File,
+      ): Promise<string> => {
+        const token =
+          localStorage.getItem(
+            TOKEN_KEY,
+          );
+
+        if (!token) {
+          throw new Error(
+            "جلسة السوبر أدمن غير موجودة.",
+          );
+        }
+
+        const formData =
+          new FormData();
+
+        formData.append(
+          "file",
+          file,
+        );
+
+        const response =
+          await fetch(
+            `${apiBase()}/uploads/academy-logo`,
+            {
+              method:
+                "POST",
+
+              headers: {
+                Accept:
+                  "application/json",
+
+                Authorization:
+                  `Bearer ${token}`,
+              },
+
+              body:
+                formData,
+            },
+          );
+
+        const result =
+          await parseResponse(
+            response,
+          );
+
+        if (!response.ok) {
+          const message =
+            typeof result ===
+              "object" &&
+            result !== null &&
+            "message" in result
+              ? (
+                  result as {
+                    message:
+                      unknown;
+                  }
+                ).message
+              : `HTTP ${response.status}`;
+
+          throw new Error(
+            Array.isArray(message)
+              ? message.join("، ")
+              : String(message),
+          );
+        }
+
+        const payload =
+          unwrap<{
+            url?: string;
+          }>(
+            result,
+          );
+
+        if (
+          !payload.url ||
+          typeof payload.url !==
+            "string"
+        ) {
+          throw new Error(
+            "لم يتم استلام رابط الشعار.",
+          );
+        }
+
+        return absoluteApiAssetUrl(
+          payload.url,
+        );
+      },
+      [],
+    );
+
   const loadAcademies = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -405,6 +561,9 @@ export function SuperAdminAcademiesSection() {
   const closePanel = () => {
     setPanelMode(null);
     setError(null);
+
+    setAcademyLogoFile(null);
+    setAcademyLogoPreview("");
   };
 
   const openCreate = () => {
@@ -417,6 +576,7 @@ export function SuperAdminAcademiesSection() {
       slug: "",
       email: "",
       phone: "",
+      logoUrl: "",
       status: "ACTIVE",
       country: "EG",
       currency: "EGP",
@@ -429,6 +589,9 @@ export function SuperAdminAcademiesSection() {
       subscriptionsEnabled: false,
       reportsEnabled: false,
     });
+
+    setAcademyLogoFile(null);
+    setAcademyLogoPreview("");
 
     setPanelMode("create");
     setError(null);
@@ -452,6 +615,12 @@ export function SuperAdminAcademiesSection() {
       slug: academy.slug ?? "",
       email: academy.email ?? "",
       phone: academy.phone ?? "",
+
+      logoUrl:
+        academy.logoUrl ??
+        academy.logo_url ??
+        "",
+
       status: statusValue(academy),
       country: academy.country ?? "EG",
       currency: academy.currency ?? "EGP",
@@ -501,6 +670,14 @@ export function SuperAdminAcademiesSection() {
 
     });
 
+    setAcademyLogoFile(null);
+
+    setAcademyLogoPreview(
+      academy.logoUrl ??
+      academy.logo_url ??
+      "",
+    );
+
     setPanelMode("edit");
     setError(null);
   };
@@ -544,6 +721,17 @@ export function SuperAdminAcademiesSection() {
     setSuccess(null);
 
     try {
+      const logoUrl =
+        academyLogoFile
+          ? await uploadAcademyLogo(
+              academyLogoFile,
+            )
+          : (
+              academyForm.logoUrl
+                .trim() ||
+              undefined
+            );
+
       await request("/super-admin/academies", {
         method: "POST",
 
@@ -557,6 +745,8 @@ export function SuperAdminAcademiesSection() {
           email: academyForm.email.trim() || undefined,
 
           phone: academyForm.phone.trim() || undefined,
+
+          logoUrl,
 
           status: academyForm.status,
 
@@ -608,6 +798,17 @@ export function SuperAdminAcademiesSection() {
     setSuccess(null);
 
     try {
+      const logoUrl =
+        academyLogoFile
+          ? await uploadAcademyLogo(
+              academyLogoFile,
+            )
+          : (
+              academyForm.logoUrl
+                .trim() ||
+              undefined
+            );
+
       await request(`/super-admin/academies/${selected.id}`, {
         method: "PATCH",
 
@@ -621,6 +822,8 @@ export function SuperAdminAcademiesSection() {
           email: academyForm.email.trim() || undefined,
 
           phone: academyForm.phone.trim() || undefined,
+
+          logoUrl,
 
           status: academyForm.status,
 
@@ -971,6 +1174,127 @@ branchId: managerForm.branchId || undefined,
                     })
                   }
                 />
+              </label>
+
+
+              <label className="wide sacademy-logo-field">
+                <span>
+                  شعار الأكاديمية
+                </span>
+
+                <div className="sacademy-logo-upload">
+
+                  <div className="sacademy-logo-preview">
+
+                    {academyLogoPreview ? (
+                      <img
+                        src={
+                          academyLogoPreview
+                        }
+                        alt="شعار الأكاديمية"
+                      />
+                    ) : (
+                      <strong>
+                        {
+                          academyForm.name
+                            .trim()
+                            .charAt(0) ||
+                          "H"
+                        }
+                      </strong>
+                    )}
+
+                  </div>
+
+                  <div>
+
+                    <input
+                      type="file"
+
+                      accept="image/jpeg,image/png,image/webp"
+
+                      onChange={(
+                        event,
+                      ) => {
+                        const file =
+                          event.currentTarget
+                            .files?.[0] ??
+                          null;
+
+                        if (!file) {
+                          return;
+                        }
+
+                        const allowed = [
+                          "image/jpeg",
+                          "image/png",
+                          "image/webp",
+                        ];
+
+                        if (
+                          !allowed.includes(
+                            file.type,
+                          )
+                        ) {
+                          setError(
+                            "يسمح فقط بصور JPG أو PNG أو WEBP.",
+                          );
+
+                          event.currentTarget.value =
+                            "";
+
+                          return;
+                        }
+
+                        if (
+                          file.size >
+                          5 * 1024 * 1024
+                        ) {
+                          setError(
+                            "حجم الشعار يجب ألا يتجاوز 5MB.",
+                          );
+
+                          event.currentTarget.value =
+                            "";
+
+                          return;
+                        }
+
+                        setError(null);
+
+                        setAcademyLogoFile(
+                          file,
+                        );
+
+                        const reader =
+                          new FileReader();
+
+                        reader.onload =
+                          () => {
+                            if (
+                              typeof reader.result ===
+                              "string"
+                            ) {
+                              setAcademyLogoPreview(
+                                reader.result,
+                              );
+                            }
+                          };
+
+                        reader.readAsDataURL(
+                          file,
+                        );
+                      }}
+                    />
+
+                    <small>
+                      JPG أو PNG أو WEBP
+                      بحد أقصى 5MB
+                    </small>
+
+                  </div>
+
+                </div>
               </label>
 
               <label>
