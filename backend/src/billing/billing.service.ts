@@ -607,8 +607,24 @@ export class BillingService {
 
   async findSubscriptions(
     filters: SubscriptionFilters,
+    options?: {
+      syncStatuses?: boolean;
+    },
   ): Promise<TraineeSubscription[]> {
-    await this.syncSubscriptionStatuses(filters.academyId, filters.branchId);
+    // HAYMCLUB_BILLING_READ_ONLY_V2
+    //
+    // Existing callers keep the previous behavior.
+    // Performance-sensitive read paths such as /portal/me
+    // can explicitly skip the write-side status sync.
+    if (
+      options?.syncStatuses !==
+      false
+    ) {
+      await this.syncSubscriptionStatuses(
+        filters.academyId,
+        filters.branchId,
+      );
+    }
 
     const where: FindOptionsWhere<TraineeSubscription> = {};
 
