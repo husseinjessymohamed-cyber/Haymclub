@@ -115,6 +115,19 @@ export class SuperAdminAcademyManagementService {
         this.setValue(values, columns, ['phone'], dto.phone || null);
       }
 
+      // HAYMCLUB_ACADEMY_LOGO_UPDATE_SAVE_V2
+      if (dto.logoUrl !== undefined) {
+        this.setValue(
+          values,
+          columns,
+          [
+            'logoUrl',
+            'logo_url',
+          ],
+          dto.logoUrl || null,
+        );
+      }
+
       if (dto.country !== undefined) {
         this.setValue(values, columns, ['country'], dto.country);
       }
