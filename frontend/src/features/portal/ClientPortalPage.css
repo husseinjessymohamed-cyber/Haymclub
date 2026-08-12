@@ -1768,3 +1768,35 @@
 
 }
 
+
+
+/* ==================================================
+   HAYMCLUB_PORTAL_IMAGE_DISPLAY_FIX_V1
+   ================================================== */
+
+.client-sidebar-logo img,
+.client-portal-brand-logo img {
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+  object-fit: contain !important;
+  object-position: center !important;
+  background: #fff;
+}
+
+.client-sidebar-avatar img,
+.client-trainee-avatar img {
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+  object-fit: cover !important;
+  object-position: center top !important;
+}
+
+.client-sidebar-logo,
+.client-portal-brand-logo,
+.client-sidebar-avatar,
+.client-trainee-avatar {
+  overflow: hidden !important;
+}
+

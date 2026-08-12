@@ -13,6 +13,12 @@ import {
   getPortalApiError,
 } from '../../lib/portal-api';
 
+import {
+  api,
+} from '../../lib/api';
+
+// HAYMCLUB_PORTAL_AUTH_IMAGE_LOADER_V1
+
 import type {
   ClientPortalTrainee,
 } from '../../types/portal';
@@ -700,6 +706,106 @@ function resolvePortalMediaUrl(
   )}`;
 }
 
+
+function usePortalAuthenticatedImage(
+  value:
+    | string
+    | null
+    | undefined,
+): string | null {
+  const resolved =
+    resolvePortalMediaUrl(
+      value,
+    );
+
+  const [
+    finalUrl,
+    setFinalUrl,
+  ] = useState<string | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (!resolved) {
+      setFinalUrl(null);
+
+      return;
+    }
+
+    const isApiUpload =
+      /\/api\/uploads\//i.test(
+        resolved,
+      );
+
+    if (!isApiUpload) {
+      setFinalUrl(resolved);
+
+      return;
+    }
+
+    let cancelled =
+      false;
+
+    let objectUrl:
+      string |
+      null =
+        null;
+
+    setFinalUrl(null);
+
+    void api
+      .get(
+        resolved,
+        {
+          responseType:
+            'blob',
+        },
+      )
+      .then(
+        (
+          response,
+        ) => {
+          if (cancelled) {
+            return;
+          }
+
+          objectUrl =
+            URL.createObjectURL(
+              response.data,
+            );
+
+          setFinalUrl(
+            objectUrl,
+          );
+        },
+      )
+      .catch(
+        () => {
+          if (!cancelled) {
+            setFinalUrl(
+              null,
+            );
+          }
+        },
+      );
+
+    return () => {
+      cancelled =
+        true;
+
+      if (objectUrl) {
+        URL.revokeObjectURL(
+          objectUrl,
+        );
+      }
+    };
+  }, [
+    resolved,
+  ]);
+
+  return finalUrl;
+}
+
 export function ClientPortalPage({
   onLogout,
 }: ClientPortalPageProps) {
@@ -851,12 +957,12 @@ export function ClientPortalPage({
     'Haymclub';
 
   const academyLogoUrl =
-    resolvePortalMediaUrl(
+    usePortalAuthenticatedImage(
       selected?.academy?.logoUrl,
     );
 
   const traineeImageUrl =
-    resolvePortalMediaUrl(
+    usePortalAuthenticatedImage(
       selected?.trainee
         .profileImageUrl,
     );
