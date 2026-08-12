@@ -41,6 +41,15 @@ export class UpdateSuperAdminAcademyDto {
   @MaxLength(50)
   phone?: string;
 
+  // HAYMCLUB_ACADEMY_LOGO_UPDATE_DTO_V2
+  @IsOptional()
+  @Transform(({ value }) =>
+    String(value).trim()
+  )
+  @IsString()
+  @MaxLength(500)
+  logoUrl?: string;
+
   @IsOptional()
   @IsString()
   @MaxLength(30)
