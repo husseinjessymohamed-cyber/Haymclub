@@ -776,16 +776,27 @@ export class PortalService {
             // payments
             const subscriptions =
               await this.billingService
-                .findSubscriptions({
-                  traineeId:
-                    link.traineeId,
+                .findSubscriptions(
+                  {
+                    traineeId:
+                      link.traineeId,
 
-                  academyId:
-                    trainee.academyId,
+                    academyId:
+                      trainee.academyId,
 
-                  branchId:
-                    trainee.branchId,
-                });
+                    branchId:
+                      trainee.branchId,
+                  },
+
+                  {
+                    // HAYMCLUB_PORTAL_READ_ONLY_SUBSCRIPTIONS_V2
+                    //
+                    // Portal reads must not run UPDATE queries
+                    // every time the dashboard is opened.
+                    syncStatuses:
+                      false,
+                  },
+                );
 
             // Build the billing summary in memory instead of
             // getTraineeSummary(), which used to perform

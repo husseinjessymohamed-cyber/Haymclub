@@ -344,63 +344,205 @@ export class AttendanceService {
   }
 
   async getTraineeStats(traineeId: string) {
-    const trainee = await this.traineesRepository.findOne({
-      where: {
-        id: traineeId,
-      },
-    });
+    // HAYMCLUB_ATTENDANCE_AGGREGATE_STATS_V2
+    //
+    // Do not load every attendance record and session
+    // into Node.js just to calculate counters.
+    //
+    // Fetch only the trainee identity and aggregate the
+    // attendance counters directly inside PostgreSQL.
+
+    const [
+      trainee,
+      rawStats,
+    ] = await Promise.all([
+      this.traineesRepository.findOne({
+        where: {
+          id: traineeId,
+        },
+        select: {
+          id: true,
+          registrationCode: true,
+          firstName: true,
+          lastName: true,
+        },
+      }),
+
+      this.attendanceRepository
+        .createQueryBuilder('attendance')
+        .innerJoin(
+          'attendance.session',
+          'session',
+        )
+        .select(
+          'COUNT(*)',
+          'total',
+        )
+        .addSelect(
+          `
+          COUNT(*) FILTER (
+            WHERE attendance.status = :notMarked
+          )
+          `,
+          'notMarked',
+        )
+        .addSelect(
+          `
+          COUNT(*) FILTER (
+            WHERE attendance.status = :present
+          )
+          `,
+          'present',
+        )
+        .addSelect(
+          `
+          COUNT(*) FILTER (
+            WHERE attendance.status = :absent
+          )
+          `,
+          'absent',
+        )
+        .addSelect(
+          `
+          COUNT(*) FILTER (
+            WHERE attendance.status = :late
+          )
+          `,
+          'late',
+        )
+        .addSelect(
+          `
+          COUNT(*) FILTER (
+            WHERE attendance.status = :excused
+          )
+          `,
+          'excused',
+        )
+        .where(
+          'attendance.traineeId = :traineeId',
+          {
+            traineeId,
+          },
+        )
+        .andWhere(
+          'session.status != :cancelled',
+          {
+            cancelled:
+              TrainingSessionStatus.CANCELLED,
+          },
+        )
+        .setParameters({
+          notMarked:
+            'NOT_MARKED',
+
+          present:
+            'PRESENT',
+
+          absent:
+            'ABSENT',
+
+          late:
+            'LATE',
+
+          excused:
+            'EXCUSED',
+        })
+        .getRawOne<{
+          total: string;
+          notMarked: string;
+          present: string;
+          absent: string;
+          late: string;
+          excused: string;
+        }>(),
+    ]);
 
     if (!trainee) {
-      throw new NotFoundException('Trainee not found');
+      throw new NotFoundException(
+        'Trainee not found',
+      );
     }
-
-    const records = await this.attendanceRepository.find({
-      where: {
-        traineeId,
-      },
-      relations: {
-        session: true,
-      },
-      order: {
-        createdAt: 'DESC',
-      },
-    });
-
-    const validRecords = records.filter(
-      (record) => record.session.status !== TrainingSessionStatus.CANCELLED,
-    );
 
     const counts = {
-      NOT_MARKED: 0,
-      PRESENT: 0,
-      ABSENT: 0,
-      LATE: 0,
-      EXCUSED: 0,
+      NOT_MARKED:
+        Number(
+          rawStats?.notMarked ??
+          0,
+        ),
+
+      PRESENT:
+        Number(
+          rawStats?.present ??
+          0,
+        ),
+
+      ABSENT:
+        Number(
+          rawStats?.absent ??
+          0,
+        ),
+
+      LATE:
+        Number(
+          rawStats?.late ??
+          0,
+        ),
+
+      EXCUSED:
+        Number(
+          rawStats?.excused ??
+          0,
+        ),
     };
 
-    for (const record of validRecords) {
-      counts[record.status] += 1;
-    }
+    const totalSessions =
+      Number(
+        rawStats?.total ??
+        0,
+      );
 
-    const markedSessions = validRecords.length - counts.NOT_MARKED;
+    const markedSessions =
+      totalSessions -
+      counts.NOT_MARKED;
 
-    const attendedSessions = counts.PRESENT + counts.LATE;
+    const attendedSessions =
+      counts.PRESENT +
+      counts.LATE;
 
     const attendanceRate =
       markedSessions > 0
-        ? Number(((attendedSessions / markedSessions) * 100).toFixed(2))
+        ? Number(
+            (
+              (
+                attendedSessions /
+                markedSessions
+              ) *
+              100
+            ).toFixed(2),
+          )
         : 0;
 
     return {
       trainee: {
-        id: trainee.id,
-        registrationCode: trainee.registrationCode,
-        firstName: trainee.firstName,
-        lastName: trainee.lastName,
+        id:
+          trainee.id,
+
+        registrationCode:
+          trainee.registrationCode,
+
+        firstName:
+          trainee.firstName,
+
+        lastName:
+          trainee.lastName,
       },
-      totalSessions: validRecords.length,
+
+      totalSessions,
+
       markedSessions,
+
       attendanceRate,
+
       counts,
     };
   }
