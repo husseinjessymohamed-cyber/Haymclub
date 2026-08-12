@@ -37,6 +37,34 @@ export enum PortalRelationship {
   'IDX_portal_links_academy',
   ['academyId'],
 )
+
+// HAYMCLUB_PORTAL_CONCURRENCY_INDEXES_V1
+//
+// Exactly one active/non-deleted SELF portal link
+// is allowed per trainee.
+//
+// Exactly one non-deleted primary portal link
+// is allowed per user.
+@Index(
+  'UQ_portal_links_single_self_per_trainee',
+  ['traineeId'],
+  {
+    unique: true,
+
+    where:
+      `"relationship" = 'SELF' AND "deleted_at" IS NULL`,
+  },
+)
+@Index(
+  'UQ_portal_links_single_primary_per_user',
+  ['userId'],
+  {
+    unique: true,
+
+    where:
+      `"is_primary" = true AND "deleted_at" IS NULL`,
+  },
+)
 export class PortalTraineeLink extends BaseEntity {
   @Column({
     name: 'academy_id',

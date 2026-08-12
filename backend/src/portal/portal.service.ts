@@ -375,51 +375,78 @@ export class PortalService {
       );
     }
 
-    if (dto.isPrimary) {
-      await this.linksRepository.update(
-        {
-          userId: dto.userId,
-        },
-        {
-          isPrimary: false,
-        },
-      );
-    }
-
-    const link =
-      this.linksRepository.create({
-        academyId:
-          trainee.academyId,
-
-        userId:
-          dto.userId,
-
-        traineeId:
-          dto.traineeId,
-
-        relationship:
-          dto.relationship,
-
-        isPrimary:
-          dto.isPrimary ?? false,
-
-        isActive:
-          dto.isActive ?? true,
-      });
+    // HAYMCLUB_PORTAL_PRIMARY_TRANSACTION_V1
+    //
+    // Clearing the previous primary link and saving
+    // the new link must be one atomic operation.
+    //
+    // The database unique partial index added by the
+    // matching migration protects concurrent requests.
+    let savedLinkId: string;
 
     try {
-      const saved =
-        await this.linksRepository.save(
-          link,
-        );
+      savedLinkId =
+        await this.dataSource.transaction(
+          async (manager) => {
+            const linksRepository =
+              manager.getRepository(
+                PortalTraineeLink,
+              );
 
-      return this.findLink(
-        saved.id,
-        currentUser,
-      );
+            if (dto.isPrimary) {
+              await linksRepository.update(
+                {
+                  userId:
+                    dto.userId,
+                },
+                {
+                  isPrimary:
+                    false,
+                },
+              );
+            }
+
+            const link =
+              linksRepository.create({
+                academyId:
+                  trainee.academyId,
+
+                userId:
+                  dto.userId,
+
+                traineeId:
+                  dto.traineeId,
+
+                relationship:
+                  dto.relationship,
+
+                isPrimary:
+                  dto.isPrimary ??
+                  false,
+
+                isActive:
+                  dto.isActive ??
+                  true,
+              });
+
+            const saved =
+              await linksRepository.save(
+                link,
+              );
+
+            return saved.id;
+          },
+        );
     } catch (error) {
-      this.handleDatabaseError(error);
+      this.handleDatabaseError(
+        error,
+      );
     }
+
+    return this.findLink(
+      savedLinkId,
+      currentUser,
+    );
   }
 
   async findLinks(
@@ -629,36 +656,56 @@ export class PortalService {
       );
     }
 
-    if (dto.isPrimary) {
-      await this.linksRepository.update(
-        {
-          userId:
-            link.userId,
-        },
-        {
-          isPrimary: false,
+    // HAYMCLUB_PORTAL_UPDATE_PRIMARY_TRANSACTION_V1
+    //
+    // Keep the primary-link reset and link update
+    // inside the same transaction.
+    try {
+      await this.dataSource.transaction(
+        async (manager) => {
+          const linksRepository =
+            manager.getRepository(
+              PortalTraineeLink,
+            );
+
+          if (dto.isPrimary) {
+            await linksRepository.update(
+              {
+                userId:
+                  link.userId,
+              },
+              {
+                isPrimary:
+                  false,
+              },
+            );
+          }
+
+          linksRepository.merge(
+            link,
+            {
+              relationship,
+
+              isPrimary:
+                dto.isPrimary ??
+                link.isPrimary,
+
+              isActive:
+                dto.isActive ??
+                link.isActive,
+            },
+          );
+
+          await linksRepository.save(
+            link,
+          );
         },
       );
+    } catch (error) {
+      this.handleDatabaseError(
+        error,
+      );
     }
-
-    this.linksRepository.merge(
-      link,
-      {
-        relationship,
-
-        isPrimary:
-          dto.isPrimary ??
-          link.isPrimary,
-
-        isActive:
-          dto.isActive ??
-          link.isActive,
-      },
-    );
-
-    await this.linksRepository.save(
-      link,
-    );
 
     return this.findLink(
       id,
