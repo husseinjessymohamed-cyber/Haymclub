@@ -225,6 +225,38 @@ export class TraineesService {
     return trainee;
   }
 
+  // HAYMCLUB_PORTAL_DIRECT_ENROLLMENTS_V3
+  //
+  // Portal links already prove that the trainee exists.
+  // Read enrollments directly without calling findOne()
+  // first and without loading guardians or other
+  // unrelated trainee relations.
+  async findPortalEnrollments(
+    traineeId: string,
+  ): Promise<GroupEnrollment[]> {
+    return this.enrollmentsRepository.find({
+      where: {
+        traineeId,
+      },
+
+      relations: {
+        group: {
+          program: {
+            sport: true,
+          },
+
+          coach: true,
+
+          schedules: true,
+        },
+      },
+
+      order: {
+        createdAt: 'DESC',
+      },
+    });
+  }
+
   async update(id: string, dto: UpdateTraineeDto): Promise<Trainee> {
     const trainee = await this.findOne(id);
 

@@ -343,33 +343,51 @@ export class AttendanceService {
     }
   }
 
-  async getTraineeStats(traineeId: string) {
-    // HAYMCLUB_ATTENDANCE_AGGREGATE_STATS_V2
-    //
-    // Do not load every attendance record and session
-    // into Node.js just to calculate counters.
-    //
-    // Fetch only the trainee identity and aggregate the
-    // attendance counters directly inside PostgreSQL.
+  async getTraineeStats(
+    traineeId: string,
 
-    const [
-      trainee,
-      rawStats,
-    ] = await Promise.all([
-      this.traineesRepository.findOne({
-        where: {
-          id: traineeId,
-        },
-        select: {
-          id: true,
-          registrationCode: true,
-          firstName: true,
-          lastName: true,
-        },
-      }),
+    // HAYMCLUB_ATTENDANCE_PRELOADED_TRAINEE_V3
+    //
+    // Portal already has the trainee from the portal
+    // link query. Supplying it here prevents another
+    // trainee SELECT for every dashboard request.
+    traineeSnapshot?: Pick<
+      Trainee,
+      | 'id'
+      | 'registrationCode'
+      | 'firstName'
+      | 'lastName'
+    >,
+  ) {
+    const traineePromise =
+      traineeSnapshot
+        ? Promise.resolve(
+            traineeSnapshot,
+          )
+        : this.traineesRepository.findOne({
+            where: {
+              id: traineeId,
+            },
 
+            select: {
+              id: true,
+
+              registrationCode:
+                true,
+
+              firstName:
+                true,
+
+              lastName:
+                true,
+            },
+          });
+
+    const statsPromise =
       this.attendanceRepository
-        .createQueryBuilder('attendance')
+        .createQueryBuilder(
+          'attendance',
+        )
         .innerJoin(
           'attendance.session',
           'session',
@@ -454,7 +472,14 @@ export class AttendanceService {
           absent: string;
           late: string;
           excused: string;
-        }>(),
+        }>();
+
+    const [
+      trainee,
+      rawStats,
+    ] = await Promise.all([
+      traineePromise,
+      statsPromise,
     ]);
 
     if (!trainee) {

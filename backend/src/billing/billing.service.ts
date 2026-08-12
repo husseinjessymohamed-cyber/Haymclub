@@ -609,6 +609,9 @@ export class BillingService {
     filters: SubscriptionFilters,
     options?: {
       syncStatuses?: boolean;
+
+      // HAYMCLUB_BILLING_LIGHTWEIGHT_RELATIONS_V3
+      lightweightRelations?: boolean;
     },
   ): Promise<TraineeSubscription[]> {
     // HAYMCLUB_BILLING_READ_ONLY_V2
@@ -648,18 +651,53 @@ export class BillingService {
       where.status = filters.status;
     }
 
+    if (
+      options?.lightweightRelations
+    ) {
+      // Portal does not need trainee, branch or
+      // renewedFromSubscription joins here.
+      //
+      // Keep plan + payments so the existing client
+      // portal response shape remains compatible.
+      return this.subscriptionsRepository.find({
+        where,
+
+        relations: {
+          plan: {
+            sport: true,
+
+            program: true,
+          },
+
+          payments: true,
+        },
+
+        order: {
+          createdAt: 'DESC',
+        },
+      });
+    }
+
     return this.subscriptionsRepository.find({
       where,
+
       relations: {
         trainee: true,
+
         branch: true,
+
         plan: {
           sport: true,
+
           program: true,
         },
+
         payments: true,
-        renewedFromSubscription: true,
+
+        renewedFromSubscription:
+          true,
       },
+
       order: {
         createdAt: 'DESC',
       },
