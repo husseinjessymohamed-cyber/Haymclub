@@ -725,19 +725,17 @@ export class PortalService {
       await Promise.all(
         scopedLinks.map(
           async (link) => {
+            // HAYMCLUB_PORTAL_QUERY_DEDUP_V1
+            //
+            // Load the trainee only once.
+            // findOne already includes enrollments and their
+            // group/program/sport/coach/schedule relations.
             const [
               trainee,
-              enrollments,
               attendance,
-              billing,
             ] = await Promise.all([
               this.traineesService
                 .findOne(
-                  link.traineeId,
-                ),
-
-              this.traineesService
-                .findEnrollments(
                   link.traineeId,
                 ),
 
@@ -745,33 +743,136 @@ export class PortalService {
                 .getTraineeStats(
                   link.traineeId,
                 ),
-
-              this.billingService
-                .getTraineeSummary(
-                  link.traineeId,
-                ),
             ]);
 
+            // Avoid findEnrollments(), because that method
+            // calls findOne() again and then performs another
+            // enrollment query.
+            const enrollments =
+              [
+                ...(
+                  trainee.enrollments ??
+                  []
+                ),
+              ].sort(
+                (
+                  first,
+                  second,
+                ) =>
+                  new Date(
+                    second.createdAt,
+                  ).getTime() -
+                  new Date(
+                    first.createdAt,
+                  ).getTime(),
+              );
+
+            // One subscriptions read only.
+            //
+            // findSubscriptions already loads:
+            // trainee
+            // branch
+            // plan
+            // payments
             const subscriptions =
-              await this.billingService.findSubscriptions({
-                traineeId: link.traineeId,
-                academyId: trainee.academyId,
-                branchId: trainee.branchId,
-              });
+              await this.billingService
+                .findSubscriptions({
+                  traineeId:
+                    link.traineeId,
+
+                  academyId:
+                    trainee.academyId,
+
+                  branchId:
+                    trainee.branchId,
+                });
+
+            // Build the billing summary in memory instead of
+            // getTraineeSummary(), which used to perform
+            // another heavy trainee lookup and another
+            // subscriptions query.
+            const billingTotals =
+              subscriptions.reduce(
+                (
+                  result,
+                  subscription,
+                ) => {
+                  result.totalAmount =
+                    Number(
+                      (
+                        result.totalAmount +
+                        Number(
+                          subscription.totalAmount,
+                        )
+                      ).toFixed(2),
+                    );
+
+                  result.paidAmount =
+                    Number(
+                      (
+                        result.paidAmount +
+                        Number(
+                          subscription.paidAmount,
+                        )
+                      ).toFixed(2),
+                    );
+
+                  result.balanceAmount =
+                    Number(
+                      (
+                        result.balanceAmount +
+                        Number(
+                          subscription.balanceAmount,
+                        )
+                      ).toFixed(2),
+                    );
+
+                  return result;
+                },
+                {
+                  totalAmount: 0,
+                  paidAmount: 0,
+                  balanceAmount: 0,
+                },
+              );
+
+            const billing = {
+              trainee: {
+                id:
+                  trainee.id,
+
+                registrationCode:
+                  trainee.registrationCode,
+
+                firstName:
+                  trainee.firstName,
+
+                lastName:
+                  trainee.lastName,
+              },
+
+              totals:
+                billingTotals,
+
+              subscriptions,
+            };
 
             const activeSubscription =
               subscriptions.find(
-                (item) => item.status === 'ACTIVE',
+                (item) =>
+                  item.status ===
+                  'ACTIVE',
               ) ??
               subscriptions[0] ??
               null;
 
+            // findSubscriptions already loaded payments.
+            // Avoid findPayments(), which used to first
+            // reload the subscription and then query payments.
             const payments =
               activeSubscription
-                ? await this.billingService.findPayments(
-                    activeSubscription.id,
-                  )
-                : [];
+                ?.payments ??
+              [];
 
             return {
               academy:
