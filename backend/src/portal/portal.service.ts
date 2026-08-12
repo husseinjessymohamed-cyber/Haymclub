@@ -683,14 +683,20 @@ export class PortalService {
   async getMyPortal(
     currentUser: JwtPayload,
   ) {
-    const profile =
-      await this.usersService
+    // HAYMCLUB_PORTAL_LIGHTWEIGHT_READ_V3
+    //
+    // Profile and portal links are independent reads.
+    // Run them concurrently instead of serially.
+    const [
+      profile,
+      links,
+    ] = await Promise.all([
+      this.usersService
         .findProfileById(
           currentUser.sub,
-        );
+        ),
 
-    const links =
-      await this.linksRepository.find({
+      this.linksRepository.find({
         where: {
           userId:
             currentUser.sub,
@@ -702,16 +708,23 @@ export class PortalService {
         relations: {
           academy: true,
 
+          // This relation already gives us the trainee
+          // scalar fields required by the portal and
+          // attendance summary.
           trainee: {
             branch: true,
           },
         },
 
         order: {
-          isPrimary: 'DESC',
-          createdAt: 'ASC',
+          isPrimary:
+            'DESC',
+
+          createdAt:
+            'ASC',
         },
-      });
+      }),
+    ]);
 
     const scopedLinks =
       links.filter(
@@ -725,57 +738,42 @@ export class PortalService {
       await Promise.all(
         scopedLinks.map(
           async (link) => {
-            // HAYMCLUB_PORTAL_QUERY_DEDUP_V1
-            //
-            // Load the trainee only once.
-            // findOne already includes enrollments and their
-            // group/program/sport/coach/schedule relations.
+            // The portal link query already loaded the
+            // trainee + branch. Do not execute the deep
+            // traineesService.findOne() query here.
+            const trainee =
+              link.trainee;
+
             const [
-              trainee,
+              enrollments,
               attendance,
+              subscriptions,
             ] = await Promise.all([
               this.traineesService
-                .findOne(
+                .findPortalEnrollments(
                   link.traineeId,
                 ),
 
               this.attendanceService
                 .getTraineeStats(
                   link.traineeId,
-                ),
-            ]);
 
-            // Avoid findEnrollments(), because that method
-            // calls findOne() again and then performs another
-            // enrollment query.
-            const enrollments =
-              [
-                ...(
-                  trainee.enrollments ??
-                  []
-                ),
-              ].sort(
-                (
-                  first,
-                  second,
-                ) =>
-                  new Date(
-                    second.createdAt,
-                  ).getTime() -
-                  new Date(
-                    first.createdAt,
-                  ).getTime(),
-              );
+                  {
+                    id:
+                      trainee.id,
 
-            // One subscriptions read only.
-            //
-            // findSubscriptions already loads:
-            // trainee
-            // branch
-            // plan
-            // payments
-            const subscriptions =
-              await this.billingService
+                    registrationCode:
+                      trainee.registrationCode,
+
+                    firstName:
+                      trainee.firstName,
+
+                    lastName:
+                      trainee.lastName,
+                  },
+                ),
+
+              this.billingService
                 .findSubscriptions(
                   {
                     traineeId:
@@ -789,14 +787,14 @@ export class PortalService {
                   },
 
                   {
-                    // HAYMCLUB_PORTAL_READ_ONLY_SUBSCRIPTIONS_V2
-                    //
-                    // Portal reads must not run UPDATE queries
-                    // every time the dashboard is opened.
                     syncStatuses:
                       false,
+
+                    lightweightRelations:
+                      true,
                   },
-                );
+                ),
+            ]);
 
             // Build the billing summary in memory instead of
             // getTraineeSummary(), which used to perform
