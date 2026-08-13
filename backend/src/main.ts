@@ -1,5 +1,9 @@
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+
+import type {
+  NestExpressApplication,
+} from '@nestjs/platform-express';
 import compression from 'compression';
 import type { Request, Response } from 'express';
 import helmet from 'helmet';
@@ -52,7 +56,16 @@ function getAllowedOrigins(): Set<string> {
 async function bootstrap(): Promise<void> {
   const logger = new Logger('Bootstrap');
 
-  const app = await NestFactory.create(AppModule);
+  const app =
+    await NestFactory.create<NestExpressApplication>(
+      AppModule,
+    );
+
+  // HAYMCLUB_TRUST_PROXY_RATE_LIMIT_V1
+  //
+  // Client -> Host Nginx -> Frontend Nginx -> NestJS.
+  // Trust exactly the two known reverse-proxy hops.
+  app.set('trust proxy', 2);
 
   app.use(helmet());
   app.use(compression());

@@ -4,7 +4,13 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  UseGuards,
 } from '@nestjs/common';
+
+import {
+  Throttle,
+  ThrottlerGuard,
+} from '@nestjs/throttler';
 
 import {
   Public,
@@ -32,6 +38,15 @@ export class PasswordResetController {
   @Public()
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
+
+  // HAYMCLUB_PASSWORD_RESET_RATE_LIMIT_V1
+  @UseGuards(ThrottlerGuard)
+  @Throttle({
+    default: {
+      limit: 5,
+      ttl: 60_000,
+    },
+  })
   forgotPassword(
     @Body()
     dto: ForgotPasswordDto,
@@ -43,6 +58,14 @@ export class PasswordResetController {
   @Public()
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
+
+  @UseGuards(ThrottlerGuard)
+  @Throttle({
+    default: {
+      limit: 5,
+      ttl: 60_000,
+    },
+  })
   resetPassword(
     @Body()
     dto: ResetPasswordDto,
