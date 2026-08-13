@@ -7,6 +7,10 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 
+import {
+  ThrottlerModule,
+} from '@nestjs/throttler';
+
 import { AcademiesModule } from './academies/academies.module';
 
 import {
@@ -49,6 +53,15 @@ import { WorkflowModule } from './workflow/workflow.module';
 
 @Module({
   imports: [
+    // HAYMCLUB_THROTTLER_MODULE_V1
+    // Route-level throttling only.
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60_000,
+        limit: 10,
+      },
+    ]),
+
     StorageModule,
     TraineeInvitationsModule,
     WorkflowModule,
