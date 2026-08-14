@@ -1,4 +1,4 @@
-import { INestApplication } from '@nestjs/common';
+import { BadRequestException, INestApplication } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
@@ -7,6 +7,7 @@ import { DataSource } from 'typeorm';
 
 import { AppModule } from './../src/app.module';
 import { WorkflowAutomationService } from './../src/workflow/workflow-automation.service';
+import { SuperAdminAcademyManagementService } from './../src/super-admin-academy-management/super-admin-academy-management.service';
 
 const IDS = {
   academyA: '10000000-0000-4000-8000-000000000001',
@@ -776,6 +777,31 @@ describe('Tenant isolation (e2e)', () => {
 
     expect(response.body.scope.academyId).toBe(IDS.academyA);
     expect(response.body.scope.branchId).toBe(IDS.branchA);
+  });
+
+  it('rejects a cross-academy branch when creating an academy manager', async () => {
+    const email = 'phase5.cross-academy-manager@example.invalid';
+
+    try {
+      const service = app.get(
+        SuperAdminAcademyManagementService,
+      );
+
+      await expect(
+        service.createManager(IDS.academyA, {
+          firstName: 'Cross',
+          lastName: 'Academy',
+          email,
+          phone: '+201000000001',
+          branchId: IDS.branchB,
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    } finally {
+      await dataSource.query(
+        'DELETE FROM users WHERE LOWER(email) = LOWER($1)',
+        [email],
+      );
+    }
   });
 
 });

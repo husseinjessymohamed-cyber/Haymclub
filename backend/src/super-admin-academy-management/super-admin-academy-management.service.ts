@@ -297,6 +297,10 @@ export class SuperAdminAcademyManagementService {
 
       let branchId = dto.branchId ?? null;
 
+      if (branchId && !(await this.findBranches(manager, academyId)).some((branch) => String(branch.id ?? "") === branchId)) {
+        throw new BadRequestException("Branch does not belong to the selected academy");
+      }
+
       if (!branchId) {
         const branch = await this.ensureBranch(
           manager,
