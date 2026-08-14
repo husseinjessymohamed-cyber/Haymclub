@@ -65,6 +65,20 @@ export class WorkflowService {
     const normalizedStatus =
       status?.trim().toUpperCase() || null;
 
+    if (user.role !== 'SUPER_ADMIN' && !user.academyId) {
+      throw new ForbiddenException('Academy context is required');
+    }
+
+    const branchRestricted =
+      user.role === 'BRANCH_MANAGER' ||
+      user.role === 'RECEPTIONIST' ||
+      user.role === 'ACCOUNTANT' ||
+      user.role === 'COACH';
+
+    if (branchRestricted && !user.branchId) {
+      throw new ForbiddenException('Branch context is required');
+    }
+
     return this.dataSource.query(
       `
         SELECT
@@ -91,6 +105,10 @@ export class WorkflowService {
             $2::text IS NULL
             OR task.status = $2
           )
+            AND (
+              $3::uuid IS NULL
+              OR task.branch_id = $3
+            )
         ORDER BY
           CASE task.priority
             WHEN 'URGENT' THEN 1
@@ -105,6 +123,7 @@ export class WorkflowService {
           ? null
           : user.academyId,
         normalizedStatus,
+          branchRestricted ? user.branchId : null,
       ],
     );
   }
@@ -139,15 +158,26 @@ export class WorkflowService {
       );
     }
 
+    const branchRestricted =
+      user.role === 'BRANCH_MANAGER' ||
+      user.role === 'RECEPTIONIST' ||
+      user.role === 'ACCOUNTANT' ||
+      user.role === 'COACH';
+
+    if (branchRestricted && !user.branchId) {
+      throw new ForbiddenException('Branch context is required');
+    }
+
+    const branchId = branchRestricted
+      ? user.branchId
+      : input.branchId ?? user.branchId ?? null;
+
     return this.createTaskIfMissing(
       user.userId,
       {
         ...input,
         academyId,
-        branchId:
-          input.branchId ??
-          user.branchId ??
-          null,
+        branchId,
       },
     );
   }
@@ -420,6 +450,22 @@ export class WorkflowService {
   async syncTasks(
     user: WorkflowUser,
   ): Promise<unknown[]> {
+    if (
+      user.role !== 'SUPER_ADMIN' &&
+      user.role !== 'ACADEMY_ADMIN'
+    ) {
+      throw new ForbiddenException();
+    }
+
+    if (
+      user.role !== 'SUPER_ADMIN' &&
+      !user.academyId
+    ) {
+      throw new ForbiddenException(
+        'Academy context is required',
+      );
+    }
+
     const academies =
       await this.dataSource.query(
         `
@@ -1788,6 +1834,19 @@ export class WorkflowService {
       throw new ForbiddenException();
     }
 
+    const branchRestricted =
+      user.role === 'BRANCH_MANAGER' ||
+      user.role === 'RECEPTIONIST' ||
+      user.role === 'ACCOUNTANT' ||
+      user.role === 'COACH';
+
+    if (
+      branchRestricted &&
+      (!user.branchId || feedback.branch_id !== user.branchId)
+    ) {
+      throw new ForbiddenException('You cannot access another branch');
+    }
+
     const rows =
       await this.dataSource.query(
         `
@@ -1874,6 +1933,19 @@ export class WorkflowService {
         user.academyId
     ) {
       throw new ForbiddenException();
+    }
+
+    const branchRestricted =
+      user.role === 'BRANCH_MANAGER' ||
+      user.role === 'RECEPTIONIST' ||
+      user.role === 'ACCOUNTANT' ||
+      user.role === 'COACH';
+
+    if (
+      branchRestricted &&
+      (!user.branchId || task.branch_id !== user.branchId)
+    ) {
+      throw new ForbiddenException('You cannot access another branch');
     }
 
     return task;

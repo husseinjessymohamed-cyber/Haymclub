@@ -109,7 +109,11 @@ export class AttendanceController {
       currentUser.role === AcademyRole.RECEPTIONIST ||
       currentUser.role === AcademyRole.ACCOUNTANT
     ) {
-      filters.branchId = currentUser.branchId ?? undefined;
+      if (!currentUser.branchId) {
+        throw new ForbiddenException('Branch context is required');
+      }
+
+      filters.branchId = currentUser.branchId;
     }
 
     if (currentUser.role === AcademyRole.COACH) {

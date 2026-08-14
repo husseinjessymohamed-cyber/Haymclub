@@ -83,7 +83,11 @@ export class TraineesController {
       currentUser.role === AcademyRole.RECEPTIONIST ||
       currentUser.role === AcademyRole.ACCOUNTANT
     ) {
-      filters.branchId = currentUser.branchId ?? undefined;
+      if (!currentUser.branchId) {
+        throw new ForbiddenException('Branch context is required');
+      }
+
+      filters.branchId = currentUser.branchId;
     }
 
     return this.traineesService.findAll(filters);
