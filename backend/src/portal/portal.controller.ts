@@ -67,11 +67,12 @@ export class PortalController {
           FROM portal_trainee_links
           WHERE user_id = $1
             AND trainee_id = $2
+            AND academy_id = $3
             AND is_active = TRUE
             AND deleted_at IS NULL
           LIMIT 1
         `,
-      [currentUser.sub, traineeId],
+      [currentUser.sub, traineeId, currentUser.academyId],
     )) as Array<{
       id: string;
     }>;

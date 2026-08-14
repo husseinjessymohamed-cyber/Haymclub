@@ -77,19 +77,25 @@ export class UsersController {
   ) {
     const profile = await this.usersService.findProfileById(id);
 
-    if (currentUser.role !== AcademyRole.SUPER_ADMIN) {
-      const belongsToAcademy = profile.memberships.some(
-        (membership) => membership.academyId === currentUser.academyId,
-      );
-
-      if (!belongsToAcademy) {
-        throw new ForbiddenException(
-          'You cannot access a user from another academy',
-        );
-      }
+    if (currentUser.role === AcademyRole.SUPER_ADMIN) {
+      return profile;
     }
 
-    return profile;
+    const scopedMemberships = profile.memberships.filter(
+      (membership) => membership.academyId === currentUser.academyId,
+    );
+
+    if (scopedMemberships.length === 0) {
+      throw new ForbiddenException(
+        'You cannot access a user from another academy',
+      );
+    }
+
+    // HAYMCLUB_USER_PROFILE_TENANT_SCOPE_V1
+    return {
+      ...profile,
+      memberships: scopedMemberships,
+    };
   }
 
   private assertCanCreateUser(
