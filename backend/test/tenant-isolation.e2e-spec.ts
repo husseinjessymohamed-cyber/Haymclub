@@ -761,4 +761,21 @@ describe('Tenant isolation (e2e)', () => {
     expect(response.body.points).toBe(407);
   });
 
+  it('fails closed when a dashboard branch manager has no branch context', async () => {
+    await request(app.getHttpServer())
+      .get('/api/dashboard/overview')
+      .set('Authorization', `Bearer ${branchManagerNoBranchToken}`)
+      .expect(403);
+  });
+
+  it('forces branch managers onto their dashboard branch', async () => {
+    const response = await request(app.getHttpServer())
+      .get(`/api/dashboard/overview?branchId=${IDS.branchA2}`)
+      .set('Authorization', `Bearer ${branchManagerA1Token}`)
+      .expect(200);
+
+    expect(response.body.scope.academyId).toBe(IDS.academyA);
+    expect(response.body.scope.branchId).toBe(IDS.branchA);
+  });
+
 });
