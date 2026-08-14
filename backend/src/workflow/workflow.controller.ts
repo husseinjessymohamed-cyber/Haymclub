@@ -104,7 +104,10 @@ export class WorkflowController {
   }
 
   @Post('sync')
-  @Roles(...ADMIN_ROLES)
+  @Roles(
+    AcademyRole.SUPER_ADMIN,
+    AcademyRole.ACADEMY_ADMIN,
+  )
   sync(
     @CurrentUser('sub')
     userId: string,
@@ -553,7 +556,12 @@ export class WorkflowController {
     const branchRestricted =
       role === AcademyRole.BRANCH_MANAGER ||
       role === AcademyRole.RECEPTIONIST ||
+      role === AcademyRole.ACCOUNTANT ||
       role === AcademyRole.COACH;
+
+    if (branchRestricted && !branchId) {
+      throw new ForbiddenException('Branch context is required');
+    }
 
     const branchFilter = branchRestricted ? branchId : null;
 
@@ -688,9 +696,14 @@ export class WorkflowController {
     const branchRestricted =
       role === AcademyRole.BRANCH_MANAGER ||
       role === AcademyRole.RECEPTIONIST ||
+      role === AcademyRole.ACCOUNTANT ||
       role === AcademyRole.COACH;
 
-    if (branchRestricted && branchId && feedback.branch_id !== branchId) {
+    if (branchRestricted && !branchId) {
+      throw new ForbiddenException('Branch context is required');
+    }
+
+    if (branchRestricted && feedback.branch_id !== branchId) {
       throw new ForbiddenException('لا يمكنك فتح مرفق فرع آخر.');
     }
 

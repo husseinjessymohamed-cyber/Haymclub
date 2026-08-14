@@ -82,7 +82,11 @@ export class TrainingGroupsController {
       currentUser.role === AcademyRole.RECEPTIONIST ||
       currentUser.role === AcademyRole.ACCOUNTANT
     ) {
-      filters.branchId = currentUser.branchId ?? undefined;
+      if (!currentUser.branchId) {
+        throw new ForbiddenException('Branch context is required');
+      }
+
+      filters.branchId = currentUser.branchId;
     }
 
     if (currentUser.role === AcademyRole.COACH) {
@@ -224,7 +228,9 @@ export class TrainingGroupsController {
 
   private assertBranchAccess(currentUser: JwtPayload, branchId: string): void {
     if (
-      currentUser.role === AcademyRole.BRANCH_MANAGER &&
+      (currentUser.role === AcademyRole.BRANCH_MANAGER ||
+        currentUser.role === AcademyRole.RECEPTIONIST ||
+        currentUser.role === AcademyRole.ACCOUNTANT) &&
       currentUser.branchId !== branchId
     ) {
       throw new ForbiddenException('You cannot manage another branch');

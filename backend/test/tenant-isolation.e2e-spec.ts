@@ -13,6 +13,7 @@ const IDS = {
   academyB: '10000000-0000-4000-8000-000000000002',
 
   branchA: '11000000-0000-4000-8000-000000000001',
+  branchA2: '11000000-0000-4000-8000-000000000003',
   branchB: '11000000-0000-4000-8000-000000000002',
 
   adminA: '20000000-0000-4000-8000-000000000001',
@@ -21,6 +22,7 @@ const IDS = {
   bOnlyUser: '20000000-0000-4000-8000-000000000004',
 
   traineeA: '30000000-0000-4000-8000-000000000001',
+  traineeA2: '30000000-0000-4000-8000-000000000003',
   traineeB: '30000000-0000-4000-8000-000000000002',
 } as const;
 
@@ -31,6 +33,13 @@ describe('Tenant isolation (e2e)', () => {
 
   let adminAToken: string;
   let parentAToken: string;
+  let branchManagerA1Token: string;
+  let branchManagerNoBranchToken: string;
+  let superAdminToken: string;
+
+  let branchA1TaskId: string;
+  let branchA2TaskId: string;
+  let branchBTaskId: string;
 
   beforeAll(async () => {
     if (process.env.DB_NAME !== 'haymclub_tenant_e2e') {
@@ -74,6 +83,64 @@ describe('Tenant isolation (e2e)', () => {
       branchId: IDS.branchA,
       role: 'PARENT',
     });
+
+    branchManagerA1Token = await jwtService.signAsync({
+      sub: IDS.adminA,
+      email: 'phase4.branch.a1@example.invalid',
+      academyId: IDS.academyA,
+      branchId: IDS.branchA,
+      role: 'BRANCH_MANAGER',
+    });
+
+    branchManagerNoBranchToken = await jwtService.signAsync({
+      sub: IDS.adminA,
+      email: 'phase4.branch.null@example.invalid',
+      academyId: IDS.academyA,
+      branchId: null,
+      role: 'BRANCH_MANAGER',
+    });
+
+    superAdminToken = await jwtService.signAsync({
+      sub: IDS.adminA,
+      email: 'phase4.super@example.invalid',
+      academyId: null,
+      branchId: null,
+      role: 'SUPER_ADMIN',
+    });
+
+    const taskA1 = await request(app.getHttpServer())
+      .post("/api/workflow/tasks")
+      .set("Authorization", `Bearer ${adminAToken}`)
+      .send({
+        branchId: IDS.branchA,
+        taskType: "PHASE4_A1_TEST",
+        title: "Phase 4 branch A1 task",
+      })
+      .expect(201);
+    branchA1TaskId = taskA1.body.id;
+
+    const taskA2 = await request(app.getHttpServer())
+      .post("/api/workflow/tasks")
+      .set("Authorization", `Bearer ${adminAToken}`)
+      .send({
+        branchId: IDS.branchA2,
+        taskType: "PHASE4_A2_TEST",
+        title: "Phase 4 branch A2 task",
+      })
+      .expect(201);
+    branchA2TaskId = taskA2.body.id;
+
+    const taskB = await request(app.getHttpServer())
+      .post("/api/workflow/tasks")
+      .set("Authorization", `Bearer ${superAdminToken}`)
+      .send({
+        academyId: IDS.academyB,
+        branchId: IDS.branchB,
+        taskType: "PHASE4_B_TEST",
+        title: "Phase 4 academy B task",
+      })
+      .expect(201);
+    branchBTaskId = taskB.body.id;
   });
 
   afterAll(async () => {
@@ -134,6 +201,16 @@ describe('Tenant isolation (e2e)', () => {
           )
       `,
       [IDS.branchA, IDS.academyA, IDS.branchB, IDS.academyB],
+    );
+
+    await dataSource.query(
+      `
+        INSERT INTO branches
+          (id, academy_id, name, code, is_main, is_active)
+        VALUES
+          ($1, $2, 'Branch A2', 'E2E-A2', FALSE, TRUE)
+      `,
+      [IDS.branchA2, IDS.academyA],
     );
 
     await dataSource.query(
@@ -304,6 +381,16 @@ describe('Tenant isolation (e2e)', () => {
 
     await dataSource.query(
       `
+        INSERT INTO trainees
+          (id, academy_id, branch_id, registration_code, first_name, last_name, date_of_birth, gender)
+        VALUES
+          ($1, $2, $3, 'E2E-A2-TRAINEE', 'Trainee', 'Branch A2', '2012-01-01', 'MALE')
+      `,
+      [IDS.traineeA2, IDS.academyA, IDS.branchA2],
+    );
+
+    await dataSource.query(
+      `
         INSERT INTO portal_trainee_links
           (
             academy_id,
@@ -369,5 +456,89 @@ describe('Tenant isolation (e2e)', () => {
       .expect(200);
 
     expect(Array.isArray(response.body)).toBe(true);
+  });
+
+  it("fails closed when a branch manager has no branch context", async () => {
+    await request(app.getHttpServer())
+      .get("/api/trainees")
+      .set("Authorization", `Bearer ${branchManagerNoBranchToken}`)
+      .expect(403);
+  });
+
+  it("scopes trainee listing to the active branch", async () => {
+    const response = await request(app.getHttpServer())
+      .get("/api/trainees")
+      .set("Authorization", `Bearer ${branchManagerA1Token}`)
+      .expect(200);
+
+    const body = JSON.stringify(response.body);
+    expect(body).toContain("E2E-A-TRAINEE");
+    expect(body).not.toContain("E2E-A2-TRAINEE");
+  });
+
+  it("scopes workflow tasks to the active branch", async () => {
+    const response = await request(app.getHttpServer())
+      .get("/api/workflow/tasks")
+      .set("Authorization", `Bearer ${branchManagerA1Token}`)
+      .expect(200);
+
+    const ids = response.body.map((task: { id: string }) => task.id);
+    expect(ids).toContain(branchA1TaskId);
+    expect(ids).not.toContain(branchA2TaskId);
+    expect(ids).not.toContain(branchBTaskId);
+  });
+
+  it("forces branch-scoped task creation onto the token branch", async () => {
+    const response = await request(app.getHttpServer())
+      .post("/api/workflow/tasks")
+      .set("Authorization", `Bearer ${branchManagerA1Token}`)
+      .send({
+        branchId: IDS.branchA2,
+        taskType: "PHASE4_OVERRIDE_TEST",
+        title: "Attempted cross-branch task",
+      })
+      .expect(201);
+
+    expect(response.body.branch_id).toBe(IDS.branchA);
+    expect(response.body.branch_id).not.toBe(IDS.branchA2);
+  });
+
+  it("blocks cross-branch workflow task mutation", async () => {
+    await request(app.getHttpServer())
+      .patch(`/api/workflow/tasks/${branchA2TaskId}/status`)
+      .set("Authorization", `Bearer ${branchManagerA1Token}`)
+      .send({ status: "IN_PROGRESS" })
+      .expect(403);
+  });
+
+  it("blocks branch managers from academy-wide workflow sync", async () => {
+    await request(app.getHttpServer())
+      .post("/api/workflow/sync")
+      .set("Authorization", `Bearer ${branchManagerA1Token}`)
+      .expect(403);
+  });
+
+  it("keeps academy admins academy-wide", async () => {
+    const response = await request(app.getHttpServer())
+      .get("/api/workflow/tasks")
+      .set("Authorization", `Bearer ${adminAToken}`)
+      .expect(200);
+
+    const ids = response.body.map((task: { id: string }) => task.id);
+    expect(ids).toContain(branchA1TaskId);
+    expect(ids).toContain(branchA2TaskId);
+    expect(ids).not.toContain(branchBTaskId);
+  });
+
+  it("keeps super admins global", async () => {
+    const response = await request(app.getHttpServer())
+      .get("/api/workflow/tasks")
+      .set("Authorization", `Bearer ${superAdminToken}`)
+      .expect(200);
+
+    const ids = response.body.map((task: { id: string }) => task.id);
+    expect(ids).toContain(branchA1TaskId);
+    expect(ids).toContain(branchA2TaskId);
+    expect(ids).toContain(branchBTaskId);
   });
 });
