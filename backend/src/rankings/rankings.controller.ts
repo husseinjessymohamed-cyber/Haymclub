@@ -54,10 +54,18 @@ export class RankingsController {
   findAdminList(
     @CurrentUser('academyId')
     academyId: string | null,
+
+    @CurrentUser('branchId')
+    branchId: string | null,
+
+    @CurrentUser('role')
+    role: AcademyRole,
   ) {
     return this.rankingsService
       .findAdminList(
         academyId,
+        branchId,
+        role,
       );
   }
 
@@ -85,6 +93,12 @@ export class RankingsController {
     @CurrentUser('academyId')
     academyId: string | null,
 
+    @CurrentUser('branchId')
+    branchId: string | null,
+
+    @CurrentUser('role')
+    role: AcademyRole,
+
     @CurrentUser('sub')
     userId: string,
 
@@ -95,6 +109,8 @@ export class RankingsController {
       .update(
         traineeId,
         academyId,
+        branchId,
+        role,
         userId,
         dto,
       );
@@ -111,11 +127,20 @@ export class RankingsController {
 
     @CurrentUser('academyId')
     academyId: string | null,
+
+    @CurrentUser('branchId')
+    branchId: string | null,
+
+    @CurrentUser('role')
+    role: AcademyRole,
   ) {
     return this.rankingsService
       .remove(
         traineeId,
         academyId,
+        branchId,
+        role,
       );
   }
+
 }

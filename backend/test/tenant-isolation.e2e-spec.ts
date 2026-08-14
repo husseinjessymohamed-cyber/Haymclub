@@ -662,4 +662,103 @@ describe('Tenant isolation (e2e)', () => {
     expect(response.body.branchId).toBeNull();
   });
 
+
+  it('fails closed when a ranking admin has no branch context', async () => {
+    await request(app.getHttpServer())
+      .put(`/api/rankings/${IDS.traineeA}`)
+      .set('Authorization', `Bearer ${branchManagerNoBranchToken}`)
+      .send({
+        points: 401,
+        note: 'Phase 5 ranking no branch',
+      })
+      .expect(403);
+  });
+
+  it('blocks cross-branch ranking updates', async () => {
+    await request(app.getHttpServer())
+      .put(`/api/rankings/${IDS.traineeA2}`)
+      .set('Authorization', `Bearer ${branchManagerA1Token}`)
+      .send({
+        points: 402,
+        note: 'Phase 5 ranking cross branch update',
+      })
+      .expect(403);
+  });
+
+  it('allows ranking updates in the active branch', async () => {
+    const response = await request(app.getHttpServer())
+      .put(`/api/rankings/${IDS.traineeA}`)
+      .set('Authorization', `Bearer ${branchManagerA1Token}`)
+      .send({
+        points: 403,
+        note: 'Phase 5 ranking own branch',
+      })
+      .expect(200);
+
+    expect(response.body.traineeId).toBe(IDS.traineeA);
+    expect(response.body.points).toBe(403);
+  });
+
+  it('scopes ranking admin listing to the active branch', async () => {
+    await request(app.getHttpServer())
+      .put(`/api/rankings/${IDS.traineeA}`)
+      .set('Authorization', `Bearer ${adminAToken}`)
+      .send({
+        points: 404,
+        note: 'Phase 5 ranking A1 visible',
+      })
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .put(`/api/rankings/${IDS.traineeA2}`)
+      .set('Authorization', `Bearer ${adminAToken}`)
+      .send({
+        points: 405,
+        note: 'Phase 5 ranking A2 hidden',
+      })
+      .expect(200);
+
+    const response = await request(app.getHttpServer())
+      .get('/api/rankings/admin')
+      .set('Authorization', `Bearer ${branchManagerA1Token}`)
+      .expect(200);
+
+    const ids = response.body.map(
+      (item: { traineeId: string }) => item.traineeId,
+    );
+
+    expect(ids).toContain(IDS.traineeA);
+    expect(ids).not.toContain(IDS.traineeA2);
+  });
+
+  it('blocks cross-branch ranking deletion', async () => {
+    await request(app.getHttpServer())
+      .put(`/api/rankings/${IDS.traineeA2}`)
+      .set('Authorization', `Bearer ${adminAToken}`)
+      .send({
+        points: 406,
+        note: 'Phase 5 ranking delete protected',
+      })
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .delete(`/api/rankings/${IDS.traineeA2}`)
+      .set('Authorization', `Bearer ${branchManagerA1Token}`)
+      .expect(403);
+  });
+
+  it('keeps academy-admin ranking access academy-wide', async () => {
+    const response = await request(app.getHttpServer())
+      .put(`/api/rankings/${IDS.traineeA2}`)
+      .set('Authorization', `Bearer ${adminAToken}`)
+      .send({
+        points: 407,
+        note: 'Phase 5 ranking academy admin',
+      })
+      .expect(200);
+
+    expect(response.body.traineeId).toBe(IDS.traineeA2);
+    expect(response.body.points).toBe(407);
+  });
+
 });

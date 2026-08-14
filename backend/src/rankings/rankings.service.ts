@@ -17,6 +17,9 @@ import {
 } from 'typeorm';
 
 import {
+  AcademyRole,
+} from '../memberships/entities/academy-membership.entity';
+import {
   Trainee,
 } from '../trainees/entities/trainee.entity';
 
@@ -57,10 +60,26 @@ export class RankingsService {
 
   async findAdminList(
     academyId: string | null,
+    currentBranchId: string | null,
+    currentRole: AcademyRole,
   ): Promise<RankingResult[]> {
     this.ensureAcademy(
       academyId,
     );
+
+    const branchRestricted =
+      currentRole === AcademyRole.BRANCH_MANAGER ||
+      currentRole === AcademyRole.RECEPTIONIST ||
+      currentRole === AcademyRole.COACH;
+
+    if (
+      branchRestricted &&
+      !currentBranchId
+    ) {
+      throw new ForbiddenException(
+        'Branch context is required',
+      );
+    }
 
     const rows =
       await this.traineesRepository
@@ -93,6 +112,16 @@ export class RankingsService {
         )
         .andWhere(
           'trainee.isActive = TRUE',
+        )
+        .andWhere(
+          branchRestricted
+            ? 'trainee.branchId = :currentBranchId'
+            : '1 = 1',
+          branchRestricted
+            ? {
+                currentBranchId,
+              }
+            : {},
         )
         .select(
           'trainee.id',
@@ -179,9 +208,12 @@ export class RankingsService {
   async findTopTen(
     academyId: string | null,
   ): Promise<RankingResult[]> {
+    // Top ten intentionally remains academy-wide.
     const list =
       await this.findAdminList(
         academyId,
+        null,
+        AcademyRole.ACADEMY_ADMIN,
       );
 
     return list
@@ -201,12 +233,28 @@ export class RankingsService {
   async update(
     traineeId: string,
     academyId: string | null,
+    currentBranchId: string | null,
+    currentRole: AcademyRole,
     userId: string,
     dto: UpdateTraineeRankingDto,
   ): Promise<RankingResult> {
     this.ensureAcademy(
       academyId,
     );
+
+    const branchRestricted =
+      currentRole === AcademyRole.BRANCH_MANAGER ||
+      currentRole === AcademyRole.RECEPTIONIST ||
+      currentRole === AcademyRole.COACH;
+
+    if (
+      branchRestricted &&
+      !currentBranchId
+    ) {
+      throw new ForbiddenException(
+        'Branch context is required',
+      );
+    }
 
     const trainee =
       await this.traineesRepository
@@ -221,6 +269,15 @@ export class RankingsService {
     if (!trainee) {
       throw new NotFoundException(
         'المتدرب غير موجود في الأكاديمية.',
+      );
+    }
+
+    if (
+      branchRestricted &&
+      trainee.branchId !== currentBranchId
+    ) {
+      throw new ForbiddenException(
+        'You cannot access another branch',
       );
     }
 
@@ -248,7 +305,7 @@ export class RankingsService {
         userId;
 
       ranking.deletedAt =
-          null;
+        null;
     } else {
       ranking =
         this.rankingsRepository
@@ -273,6 +330,8 @@ export class RankingsService {
     const list =
       await this.findAdminList(
         academyId,
+        currentBranchId,
+        currentRole,
       );
 
     const result =
@@ -294,12 +353,54 @@ export class RankingsService {
   async remove(
     traineeId: string,
     academyId: string | null,
+    currentBranchId: string | null,
+    currentRole: AcademyRole,
   ): Promise<{
     message: string;
   }> {
     this.ensureAcademy(
       academyId,
     );
+
+    const branchRestricted =
+      currentRole === AcademyRole.BRANCH_MANAGER ||
+      currentRole === AcademyRole.RECEPTIONIST ||
+      currentRole === AcademyRole.COACH;
+
+    if (
+      branchRestricted &&
+      !currentBranchId
+    ) {
+      throw new ForbiddenException(
+        'Branch context is required',
+      );
+    }
+
+    if (branchRestricted) {
+      const trainee =
+        await this.traineesRepository
+          .findOne({
+            where: {
+              id: traineeId,
+              academyId:
+                academyId as string,
+            },
+          });
+
+      if (!trainee) {
+        throw new NotFoundException(
+          'المتدرب غير موجود في الأكاديمية.',
+        );
+      }
+
+      if (
+        trainee.branchId !== currentBranchId
+      ) {
+        throw new ForbiddenException(
+          'You cannot access another branch',
+        );
+      }
+    }
 
     const ranking =
       await this.rankingsRepository
