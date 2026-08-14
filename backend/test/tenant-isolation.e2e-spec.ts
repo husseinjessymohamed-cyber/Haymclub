@@ -541,4 +541,125 @@ describe('Tenant isolation (e2e)', () => {
     expect(ids).toContain(branchA2TaskId);
     expect(ids).toContain(branchBTaskId);
   });
+
+  it('fails closed when a notification admin has no branch context', async () => {
+    await request(app.getHttpServer())
+      .post('/api/notifications')
+      .set('Authorization', `Bearer ${branchManagerNoBranchToken}`)
+      .send({
+        title: 'Phase 5 no branch',
+        body: 'Should be rejected',
+        audience: 'BRANCH_TRAINEES',
+        branchId: IDS.branchA,
+      })
+      .expect(403);
+  });
+
+  it('blocks branch-scoped admins from academy-wide notifications', async () => {
+    await request(app.getHttpServer())
+      .post('/api/notifications')
+      .set('Authorization', `Bearer ${branchManagerA1Token}`)
+      .send({
+        title: 'Phase 5 academy wide attempt',
+        body: 'Should be rejected',
+        audience: 'ALL_TRAINEES',
+      })
+      .expect(403);
+  });
+
+  it('blocks cross-branch notification creation', async () => {
+    await request(app.getHttpServer())
+      .post('/api/notifications')
+      .set('Authorization', `Bearer ${branchManagerA1Token}`)
+      .send({
+        title: 'Phase 5 cross branch attempt',
+        body: 'Should be rejected',
+        audience: 'BRANCH_TRAINEES',
+        branchId: IDS.branchA2,
+      })
+      .expect(403);
+  });
+
+  it('allows branch-scoped notification creation for the active branch', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/api/notifications')
+      .set('Authorization', `Bearer ${branchManagerA1Token}`)
+      .send({
+        title: 'Phase 5 own branch',
+        body: 'Allowed branch notification',
+        audience: 'BRANCH_TRAINEES',
+        branchId: IDS.branchA,
+      })
+      .expect(201);
+
+    expect(response.body.branchId).toBe(IDS.branchA);
+    expect(response.body.audience).toBe('BRANCH_TRAINEES');
+  });
+
+  it('scopes notification admin listing to the active branch', async () => {
+    await request(app.getHttpServer())
+      .post('/api/notifications')
+      .set('Authorization', `Bearer ${adminAToken}`)
+      .send({
+        title: 'Phase 5 A1 visible',
+        body: 'Branch A1 notification',
+        audience: 'BRANCH_TRAINEES',
+        branchId: IDS.branchA,
+      })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post('/api/notifications')
+      .set('Authorization', `Bearer ${adminAToken}`)
+      .send({
+        title: 'Phase 5 A2 hidden',
+        body: 'Branch A2 notification',
+        audience: 'BRANCH_TRAINEES',
+        branchId: IDS.branchA2,
+      })
+      .expect(201);
+
+    const response = await request(app.getHttpServer())
+      .get('/api/notifications/admin')
+      .set('Authorization', `Bearer ${branchManagerA1Token}`)
+      .expect(200);
+
+    const body = JSON.stringify(response.body);
+    expect(body).toContain('Phase 5 A1 visible');
+    expect(body).not.toContain('Phase 5 A2 hidden');
+  });
+
+  it('blocks cross-branch notification deletion', async () => {
+    const created = await request(app.getHttpServer())
+      .post('/api/notifications')
+      .set('Authorization', `Bearer ${adminAToken}`)
+      .send({
+        title: 'Phase 5 A2 delete protected',
+        body: 'Branch A2 notification',
+        audience: 'BRANCH_TRAINEES',
+        branchId: IDS.branchA2,
+      })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .delete(`/api/notifications/${created.body.id}`)
+      .set('Authorization', `Bearer ${branchManagerA1Token}`)
+      .expect(403);
+  });
+
+  it('keeps academy-admin academy-wide notification creation working', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/api/notifications')
+      .set('Authorization', `Bearer ${adminAToken}`)
+      .send({
+        title: 'Phase 5 academy admin broadcast',
+        body: 'Allowed academy-wide notification',
+        audience: 'ALL_TRAINEES',
+      })
+      .expect(201);
+
+    expect(response.body.audience).toBe('ALL_TRAINEES');
+    expect(response.body.branchId).toBeNull();
+  });
+
 });
