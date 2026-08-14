@@ -15,6 +15,7 @@ import {
 
 import {
   Brackets,
+  IsNull,
   QueryFailedError,
   Repository,
 } from 'typeorm';
@@ -22,6 +23,9 @@ import {
 import {
   Branch,
 } from '../branches/entities/branch.entity';
+import {
+  AcademyRole,
+} from '../memberships/entities/academy-membership.entity';
 
 import {
   CreateNotificationDto,
@@ -71,11 +75,36 @@ export class NotificationsService {
     senderUserId: string,
     academyId: string | null,
     currentBranchId: string | null,
+    currentRole: AcademyRole,
     dto: CreateNotificationDto,
   ): Promise<AcademyNotification> {
     if (!academyId) {
       throw new ForbiddenException(
         'لا توجد أكاديمية مرتبطة بالحساب.',
+      );
+    }
+
+    const branchRestricted =
+      currentRole === AcademyRole.BRANCH_MANAGER ||
+      currentRole === AcademyRole.RECEPTIONIST ||
+      currentRole === AcademyRole.COACH;
+
+    if (
+      branchRestricted &&
+      !currentBranchId
+    ) {
+      throw new ForbiddenException(
+        'Branch context is required',
+      );
+    }
+
+    if (
+      branchRestricted &&
+      dto.audience ===
+        NotificationAudience.ALL_TRAINEES
+    ) {
+      throw new ForbiddenException(
+        'You cannot send academy-wide notifications',
       );
     }
 
@@ -86,9 +115,20 @@ export class NotificationsService {
       dto.audience ===
       NotificationAudience.BRANCH_TRAINEES
     ) {
-      branchId =
-        dto.branchId ??
-        currentBranchId;
+      if (
+        branchRestricted &&
+        dto.branchId &&
+        dto.branchId !== currentBranchId
+      ) {
+        throw new ForbiddenException(
+          'You cannot access another branch',
+        );
+      }
+
+      branchId = branchRestricted
+        ? currentBranchId
+        : dto.branchId ??
+          currentBranchId;
 
       if (!branchId) {
         throw new BadRequestException(
@@ -130,6 +170,8 @@ export class NotificationsService {
 
   async findAdminNotifications(
     academyId: string | null,
+    currentBranchId: string | null,
+    currentRole: AcademyRole,
   ): Promise<AcademyNotification[]> {
     if (!academyId) {
       throw new ForbiddenException(
@@ -137,11 +179,37 @@ export class NotificationsService {
       );
     }
 
+    const branchRestricted =
+      currentRole === AcademyRole.BRANCH_MANAGER ||
+      currentRole === AcademyRole.RECEPTIONIST ||
+      currentRole === AcademyRole.COACH;
+
+    if (
+      branchRestricted &&
+      !currentBranchId
+    ) {
+      throw new ForbiddenException(
+        'Branch context is required',
+      );
+    }
+
     return this.notificationsRepository
       .find({
-        where: {
-          academyId,
-        },
+        where: branchRestricted
+          ? [
+              {
+                academyId,
+                branchId:
+                  currentBranchId as string,
+              },
+              {
+                academyId,
+                branchId: IsNull(),
+              },
+            ]
+          : {
+              academyId,
+            },
 
         order: {
           publishedAt: 'DESC',
@@ -385,10 +453,26 @@ export class NotificationsService {
   async remove(
     notificationId: string,
     academyId: string | null,
+    currentBranchId: string | null,
+    currentRole: AcademyRole,
   ): Promise<{ message: string }> {
     if (!academyId) {
       throw new ForbiddenException(
         'لا توجد أكاديمية مرتبطة بالحساب.',
+      );
+    }
+
+    const branchRestricted =
+      currentRole === AcademyRole.BRANCH_MANAGER ||
+      currentRole === AcademyRole.RECEPTIONIST ||
+      currentRole === AcademyRole.COACH;
+
+    if (
+      branchRestricted &&
+      !currentBranchId
+    ) {
+      throw new ForbiddenException(
+        'Branch context is required',
       );
     }
 
@@ -404,6 +488,15 @@ export class NotificationsService {
     if (!notification) {
       throw new NotFoundException(
         'الإشعار غير موجود.',
+      );
+    }
+
+    if (
+      branchRestricted &&
+      notification.branchId !== currentBranchId
+    ) {
+      throw new ForbiddenException(
+        'You cannot access another branch',
       );
     }
 

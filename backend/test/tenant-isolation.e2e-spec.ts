@@ -1,4 +1,4 @@
-import { INestApplication } from '@nestjs/common';
+import { BadRequestException, INestApplication } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
@@ -7,6 +7,7 @@ import { DataSource } from 'typeorm';
 
 import { AppModule } from './../src/app.module';
 import { WorkflowAutomationService } from './../src/workflow/workflow-automation.service';
+import { SuperAdminAcademyManagementService } from './../src/super-admin-academy-management/super-admin-academy-management.service';
 
 const IDS = {
   academyA: '10000000-0000-4000-8000-000000000001',
@@ -541,4 +542,266 @@ describe('Tenant isolation (e2e)', () => {
     expect(ids).toContain(branchA2TaskId);
     expect(ids).toContain(branchBTaskId);
   });
+
+  it('fails closed when a notification admin has no branch context', async () => {
+    await request(app.getHttpServer())
+      .post('/api/notifications')
+      .set('Authorization', `Bearer ${branchManagerNoBranchToken}`)
+      .send({
+        title: 'Phase 5 no branch',
+        body: 'Should be rejected',
+        audience: 'BRANCH_TRAINEES',
+        branchId: IDS.branchA,
+      })
+      .expect(403);
+  });
+
+  it('blocks branch-scoped admins from academy-wide notifications', async () => {
+    await request(app.getHttpServer())
+      .post('/api/notifications')
+      .set('Authorization', `Bearer ${branchManagerA1Token}`)
+      .send({
+        title: 'Phase 5 academy wide attempt',
+        body: 'Should be rejected',
+        audience: 'ALL_TRAINEES',
+      })
+      .expect(403);
+  });
+
+  it('blocks cross-branch notification creation', async () => {
+    await request(app.getHttpServer())
+      .post('/api/notifications')
+      .set('Authorization', `Bearer ${branchManagerA1Token}`)
+      .send({
+        title: 'Phase 5 cross branch attempt',
+        body: 'Should be rejected',
+        audience: 'BRANCH_TRAINEES',
+        branchId: IDS.branchA2,
+      })
+      .expect(403);
+  });
+
+  it('allows branch-scoped notification creation for the active branch', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/api/notifications')
+      .set('Authorization', `Bearer ${branchManagerA1Token}`)
+      .send({
+        title: 'Phase 5 own branch',
+        body: 'Allowed branch notification',
+        audience: 'BRANCH_TRAINEES',
+        branchId: IDS.branchA,
+      })
+      .expect(201);
+
+    expect(response.body.branchId).toBe(IDS.branchA);
+    expect(response.body.audience).toBe('BRANCH_TRAINEES');
+  });
+
+  it('scopes notification admin listing to the active branch', async () => {
+    await request(app.getHttpServer())
+      .post('/api/notifications')
+      .set('Authorization', `Bearer ${adminAToken}`)
+      .send({
+        title: 'Phase 5 A1 visible',
+        body: 'Branch A1 notification',
+        audience: 'BRANCH_TRAINEES',
+        branchId: IDS.branchA,
+      })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post('/api/notifications')
+      .set('Authorization', `Bearer ${adminAToken}`)
+      .send({
+        title: 'Phase 5 A2 hidden',
+        body: 'Branch A2 notification',
+        audience: 'BRANCH_TRAINEES',
+        branchId: IDS.branchA2,
+      })
+      .expect(201);
+
+    const response = await request(app.getHttpServer())
+      .get('/api/notifications/admin')
+      .set('Authorization', `Bearer ${branchManagerA1Token}`)
+      .expect(200);
+
+    const body = JSON.stringify(response.body);
+    expect(body).toContain('Phase 5 A1 visible');
+    expect(body).not.toContain('Phase 5 A2 hidden');
+  });
+
+  it('blocks cross-branch notification deletion', async () => {
+    const created = await request(app.getHttpServer())
+      .post('/api/notifications')
+      .set('Authorization', `Bearer ${adminAToken}`)
+      .send({
+        title: 'Phase 5 A2 delete protected',
+        body: 'Branch A2 notification',
+        audience: 'BRANCH_TRAINEES',
+        branchId: IDS.branchA2,
+      })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .delete(`/api/notifications/${created.body.id}`)
+      .set('Authorization', `Bearer ${branchManagerA1Token}`)
+      .expect(403);
+  });
+
+  it('keeps academy-admin academy-wide notification creation working', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/api/notifications')
+      .set('Authorization', `Bearer ${adminAToken}`)
+      .send({
+        title: 'Phase 5 academy admin broadcast',
+        body: 'Allowed academy-wide notification',
+        audience: 'ALL_TRAINEES',
+      })
+      .expect(201);
+
+    expect(response.body.audience).toBe('ALL_TRAINEES');
+    expect(response.body.branchId).toBeNull();
+  });
+
+
+  it('fails closed when a ranking admin has no branch context', async () => {
+    await request(app.getHttpServer())
+      .put(`/api/rankings/${IDS.traineeA}`)
+      .set('Authorization', `Bearer ${branchManagerNoBranchToken}`)
+      .send({
+        points: 401,
+        note: 'Phase 5 ranking no branch',
+      })
+      .expect(403);
+  });
+
+  it('blocks cross-branch ranking updates', async () => {
+    await request(app.getHttpServer())
+      .put(`/api/rankings/${IDS.traineeA2}`)
+      .set('Authorization', `Bearer ${branchManagerA1Token}`)
+      .send({
+        points: 402,
+        note: 'Phase 5 ranking cross branch update',
+      })
+      .expect(403);
+  });
+
+  it('allows ranking updates in the active branch', async () => {
+    const response = await request(app.getHttpServer())
+      .put(`/api/rankings/${IDS.traineeA}`)
+      .set('Authorization', `Bearer ${branchManagerA1Token}`)
+      .send({
+        points: 403,
+        note: 'Phase 5 ranking own branch',
+      })
+      .expect(200);
+
+    expect(response.body.traineeId).toBe(IDS.traineeA);
+    expect(response.body.points).toBe(403);
+  });
+
+  it('scopes ranking admin listing to the active branch', async () => {
+    await request(app.getHttpServer())
+      .put(`/api/rankings/${IDS.traineeA}`)
+      .set('Authorization', `Bearer ${adminAToken}`)
+      .send({
+        points: 404,
+        note: 'Phase 5 ranking A1 visible',
+      })
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .put(`/api/rankings/${IDS.traineeA2}`)
+      .set('Authorization', `Bearer ${adminAToken}`)
+      .send({
+        points: 405,
+        note: 'Phase 5 ranking A2 hidden',
+      })
+      .expect(200);
+
+    const response = await request(app.getHttpServer())
+      .get('/api/rankings/admin')
+      .set('Authorization', `Bearer ${branchManagerA1Token}`)
+      .expect(200);
+
+    const ids = response.body.map(
+      (item: { traineeId: string }) => item.traineeId,
+    );
+
+    expect(ids).toContain(IDS.traineeA);
+    expect(ids).not.toContain(IDS.traineeA2);
+  });
+
+  it('blocks cross-branch ranking deletion', async () => {
+    await request(app.getHttpServer())
+      .put(`/api/rankings/${IDS.traineeA2}`)
+      .set('Authorization', `Bearer ${adminAToken}`)
+      .send({
+        points: 406,
+        note: 'Phase 5 ranking delete protected',
+      })
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .delete(`/api/rankings/${IDS.traineeA2}`)
+      .set('Authorization', `Bearer ${branchManagerA1Token}`)
+      .expect(403);
+  });
+
+  it('keeps academy-admin ranking access academy-wide', async () => {
+    const response = await request(app.getHttpServer())
+      .put(`/api/rankings/${IDS.traineeA2}`)
+      .set('Authorization', `Bearer ${adminAToken}`)
+      .send({
+        points: 407,
+        note: 'Phase 5 ranking academy admin',
+      })
+      .expect(200);
+
+    expect(response.body.traineeId).toBe(IDS.traineeA2);
+    expect(response.body.points).toBe(407);
+  });
+
+  it('fails closed when a dashboard branch manager has no branch context', async () => {
+    await request(app.getHttpServer())
+      .get('/api/dashboard/overview')
+      .set('Authorization', `Bearer ${branchManagerNoBranchToken}`)
+      .expect(403);
+  });
+
+  it('forces branch managers onto their dashboard branch', async () => {
+    const response = await request(app.getHttpServer())
+      .get(`/api/dashboard/overview?branchId=${IDS.branchA2}`)
+      .set('Authorization', `Bearer ${branchManagerA1Token}`)
+      .expect(200);
+
+    expect(response.body.scope.academyId).toBe(IDS.academyA);
+    expect(response.body.scope.branchId).toBe(IDS.branchA);
+  });
+
+  it('rejects a cross-academy branch when creating an academy manager', async () => {
+    const email = 'phase5.cross-academy-manager@example.invalid';
+
+    try {
+      const service = app.get(
+        SuperAdminAcademyManagementService,
+      );
+
+      await expect(
+        service.createManager(IDS.academyA, {
+          firstName: 'Cross',
+          lastName: 'Academy',
+          email,
+          phone: '+201000000001',
+          branchId: IDS.branchB,
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    } finally {
+      await dataSource.query(
+        'DELETE FROM users WHERE LOWER(email) = LOWER($1)',
+        [email],
+      );
+    }
+  });
+
 });

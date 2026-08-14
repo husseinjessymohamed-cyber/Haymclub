@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Controller,
+  ForbiddenException,
   Get,
   Query,
   Req,
@@ -44,6 +45,12 @@ export class DashboardController {
     }
 
     if (user?.role === AcademyRole.BRANCH_MANAGER) {
+      if (!user.branchId) {
+        throw new ForbiddenException(
+          'Branch context is required',
+        );
+      }
+
       branchId = user.branchId;
     }
 

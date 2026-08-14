@@ -54,6 +54,8 @@ export class NotificationsController {
     academyId: string | null,
     @CurrentUser('branchId')
     branchId: string | null,
+    @CurrentUser('role')
+    role: AcademyRole,
     @Body()
     dto: CreateNotificationDto,
   ) {
@@ -61,6 +63,7 @@ export class NotificationsController {
       userId,
       academyId,
       branchId,
+      role,
       dto,
     );
   }
@@ -70,9 +73,17 @@ export class NotificationsController {
   findAdminNotifications(
     @CurrentUser('academyId')
     academyId: string | null,
+    @CurrentUser('branchId')
+    branchId: string | null,
+    @CurrentUser('role')
+    role: AcademyRole,
   ) {
     return this.notificationsService
-      .findAdminNotifications(academyId);
+      .findAdminNotifications(
+        academyId,
+        branchId,
+        role,
+      );
   }
 
   @Get('my')
@@ -145,11 +156,18 @@ export class NotificationsController {
     notificationId: string,
     @CurrentUser('academyId')
     academyId: string | null,
+    @CurrentUser('branchId')
+    branchId: string | null,
+    @CurrentUser('role')
+    role: AcademyRole,
   ) {
     return this.notificationsService
       .remove(
         notificationId,
         academyId,
+        branchId,
+        role,
       );
   }
+
 }
